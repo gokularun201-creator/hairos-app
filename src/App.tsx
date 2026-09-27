@@ -25,6 +25,7 @@ export const App: React.FC = () => {
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [isScalpCheckOpen, setIsScalpCheckOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -51,6 +52,7 @@ export const App: React.FC = () => {
         setPhotos(ph);
         setScalpChecks(sc);
         setReminders(rem);
+        setIsLoaded(true);
 
         if (!p.onboardingCompleted) {
           setIsOnboardingOpen(true);
@@ -263,17 +265,19 @@ export const App: React.FC = () => {
         onSaveScalpCheck={handleSaveScalpCheck}
       />
 
-      <ProfileSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        profile={profile}
-        reminders={reminders}
-        onSaveProfile={handleSaveProfile}
-        onSaveReminders={handleSaveReminders}
-        onExportData={handleExportData}
-        onImportData={handleImportData}
-        onClearAllData={handleClearAllData}
-      />
+      {isSettingsOpen && isLoaded && (
+        <ProfileSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          profile={profile}
+          reminders={reminders}
+          onSaveProfile={handleSaveProfile}
+          onSaveReminders={handleSaveReminders}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          onClearAllData={handleClearAllData}
+        />
+      )}
     </div>
   );
 };

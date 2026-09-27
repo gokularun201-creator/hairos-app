@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, ReminderSettings, ScalpType } from '../types';
 import { NativeService } from '../services/native';
 import { 
@@ -36,7 +36,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onImportData,
   onClearAllData
 }) => {
-  const [name, setName] = useState(profile.name);
+  const [name, setName] = useState(profile.name || '');
   const [scalpType, setScalpType] = useState<ScalpType>(profile.scalpType || 'normal');
   const [primaryFocus, setPrimaryFocus] = useState(profile.primaryFocus || 'Gentle Care & Habit Consistency');
 
@@ -48,6 +48,18 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   // Deletion confirm dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Synchronize local form fields whenever modal opens or saved profile/reminders update
+  useEffect(() => {
+    if (isOpen) {
+      setName(profile.name || '');
+      setScalpType(profile.scalpType || 'normal');
+      setPrimaryFocus(profile.primaryFocus || 'Gentle Care & Habit Consistency');
+      setNotifEnabled(reminders.enabled);
+      setMorningTime(reminders.morningTime || '08:30');
+      setEveningTime(reminders.eveningTime || '20:30');
+    }
+  }, [isOpen, profile, reminders]);
 
   if (!isOpen) return null;
 
@@ -326,7 +338,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         )}
 
         <div className="text-center pt-1">
-          <span className="text-[10px] text-slate-500">HAIR OS v2.0 · Server-Free Routine Tracker</span>
+          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.0.0 (Build 2) · Server-Free Care Journal</span>
         </div>
       </div>
     </div>

@@ -83,3 +83,23 @@ To maintain complete compliance with Google Play Developer Program policies:
 - **Category**: Health & Fitness / Lifestyle
 - **Content Rating**: Everyone (PEGI 3 / ESRB Everyone)
 - **Target Age**: 18+ (General audience)
+
+---
+
+## 6. Release Notes & Package Specifications (Version 2.0.0, Build 2)
+
+- **Release Package**: Android App Bundle (`HairOS-release.aab`) & Aligned APK (`HairOS-upgraded-release.apk`)
+- **Version Name**: `2.0.0`
+- **Version Code**: `2`
+- **Target SDK**: `36` (Android 16) | **Min SDK**: `24` (Android 7.0 Nougat)
+- **Package ID**: `com.hairos.app`
+
+### What's New in v2.0.0:
+- **100% Server-Free Architecture**: Operates fully on-device using IndexedDB with zero remote tracking, servers, or external database dependencies.
+- **Bundled Offline Fonts**: Embedded Plus Jakarta Sans and JetBrains Mono fonts locally for complete offline operation without contacting Google Fonts.
+- **Customizable Care Routine**: Build and maintain gentle morning, shower, and evening care habits without guilt or streak pressure.
+- **Private Progress Journal**: High-detail photo timeline with side-by-side comparison mode and consistent lighting guides.
+- **Scalp Sensation Tracker**: Log daily scalp comfort, itching, and flaking levels.
+- **Curated Educational Guide**: Evidence-informed offline hair care and shedding education with medical safety criteria.
+- **Full Data Portability**: Instant one-tap JSON backup export/import and complete local data erasure controls.
+- **Accessibility Enhancements**: Support for Android system font and display text scaling with unobstructed navigation.
