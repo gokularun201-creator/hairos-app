@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { GUIDE_TOPICS, GuideTopic } from '../data/defaultData';
 import { 
-  BookOpen, 
   Search, 
   ShieldAlert, 
   ChevronDown, 
   ChevronUp, 
-  Sparkles,
-  Stethoscope,
-  Info
+  Stethoscope, 
+  Info,
+  Calendar,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 
 export const EducationalGuideScreen: React.FC = () => {
@@ -25,30 +26,31 @@ export const EducationalGuideScreen: React.FC = () => {
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.details.some((d) => d.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      t.keyAdvice.toLowerCase().includes(searchQuery.toLowerCase());
+      t.keyAdvice.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.sources.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCat && matchesSearch;
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5">
+    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-24">
       {/* Top Header */}
-      <div>
+      <div className="pt-2">
         <h2 className="text-xl font-black tracking-tight text-white flex items-center space-x-2">
           <span>Care Guide & Education</span>
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Curated, offline educational references for healthy hair and scalp habits.
+          Curated, offline evidence-based references for hair and scalp habits.
         </p>
       </div>
 
-      {/* Medical Safety Disclaimer Banner */}
-      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1">
+      {/* Clear Medical Safety Disclaimer Banner */}
+      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
         <div className="flex items-center space-x-1.5 font-bold text-amber-300">
           <Stethoscope className="w-4 h-4 flex-shrink-0" />
-          <span>Educational Reference Only</span>
+          <span>Educational Reference Only — Not Medical Advice</span>
         </div>
         <p className="text-[11px] leading-relaxed text-amber-200/90">
-          This guide runs 100% on your device and provides general hygiene and care information. It does not diagnose medical conditions, prescribe medication, or promise hair regrowth. For sudden, severe, or painful shedding, consult a board-certified dermatologist.
+          This guide runs 100% offline on your device to explain standard scalp biology and gentle care practices. It does not provide clinical diagnoses, medical staging, prescription treatments, or guarantees of hair regrowth. For persistent pain, sudden patchy shedding, or inflammatory conditions, consult a board-certified dermatologist.
         </p>
       </div>
 
@@ -104,10 +106,16 @@ export const EducationalGuideScreen: React.FC = () => {
                   tabIndex={0}
                   className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors"
                 >
-                  <div className="space-y-1 pr-3">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-teal-400 uppercase tracking-wider">
-                      {topic.category}
-                    </span>
+                  <div className="space-y-1.5 pr-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-teal-400 uppercase tracking-wider">
+                        {topic.category}
+                      </span>
+                      <span className="text-[10px] text-slate-500 flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{topic.reviewedDate}</span>
+                      </span>
+                    </div>
                     <h3 className="text-sm font-extrabold text-white">{topic.title}</h3>
                     <p className="text-xs text-slate-400 line-clamp-1">{topic.summary}</p>
                   </div>
@@ -118,11 +126,11 @@ export const EducationalGuideScreen: React.FC = () => {
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 border-t border-slate-800/80 space-y-3 text-xs">
+                  <div className="px-4 pb-4 pt-1 border-t border-slate-800/80 space-y-3.5 text-xs">
                     <p className="text-slate-300 leading-relaxed">{topic.summary}</p>
 
                     <div className="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-                      <h4 className="font-bold text-slate-200">Key Considerations:</h4>
+                      <h4 className="font-bold text-slate-200">Key Evidence & Observations:</h4>
                       <ul className="space-y-1.5 text-slate-400 list-disc list-inside text-[11px] leading-relaxed">
                         {topic.details.map((detail, idx) => (
                           <li key={idx}>{detail}</li>
@@ -132,20 +140,39 @@ export const EducationalGuideScreen: React.FC = () => {
 
                     {/* Practical Takeaway */}
                     <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-300 space-y-0.5">
-                      <div className="font-bold text-teal-200">💡 Practical Guidance:</div>
+                      <div className="font-bold text-teal-200 flex items-center space-x-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Practical Guidance:</span>
+                      </div>
                       <p className="text-[11px] leading-relaxed">{topic.keyAdvice}</p>
                     </div>
 
-                    {/* Caution / When to be cautious */}
+                    {/* Caution */}
                     {topic.caution && (
                       <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 space-y-0.5">
                         <div className="font-bold text-rose-200 flex items-center space-x-1">
                           <ShieldAlert className="w-3.5 h-3.5" />
-                          <span>Important Precaution:</span>
+                          <span>Important Safety Precaution:</span>
                         </div>
                         <p className="text-[11px] leading-relaxed">{topic.caution}</p>
                       </div>
                     )}
+
+                    {/* Credible Sources & Review Stamp */}
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 text-[11px]">
+                      <div className="font-bold text-slate-300 flex items-center space-x-1">
+                        <ExternalLink className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Evidence Sources & Clinical References:</span>
+                      </div>
+                      <ul className="text-slate-400 space-y-1 list-disc list-inside">
+                        {topic.sources.map((src, idx) => (
+                          <li key={idx}>{src}</li>
+                        ))}
+                      </ul>
+                      <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-900">
+                        Reviewed: {topic.reviewedDate} · {topic.reviewerTitle}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

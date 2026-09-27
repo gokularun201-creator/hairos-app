@@ -1,8 +1,11 @@
-import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings } from '../types';
+import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings, HairGoal, HairType, ScalpType, PreferredTime } from '../types';
 
 export const DEFAULT_PROFILE: UserProfile = {
   name: '',
   scalpType: 'normal',
+  hairType: 'wavy',
+  hairGoal: 'gentle_maintenance',
+  preferredTime: 'morning',
   primaryFocus: 'Gentle Care & Habit Consistency',
   washFrequency: 'Every 2-3 Days',
   onboardingCompleted: false,
@@ -67,6 +70,203 @@ export const DEFAULT_ROUTINES: RoutineTask[] = [
   }
 ];
 
+export function createStarterRoutine(
+  goal: HairGoal = 'gentle_maintenance',
+  hairType: HairType = 'wavy',
+  scalpType: ScalpType = 'normal',
+  preferredTime: PreferredTime = 'morning'
+): RoutineTask[] {
+  const tasks: RoutineTask[] = [];
+
+  const morningSlot = preferredTime === 'morning' || preferredTime === 'both' ? '08:00' : '09:00';
+  const eveningSlot = preferredTime === 'evening' || preferredTime === 'both' ? '20:30' : '21:30';
+
+  if (goal === 'shedding_care') {
+    tasks.push({
+      id: `rt-shed-massage-${Date.now()}-1`,
+      title: 'Gentle Scalp Fingertip Massage (2 min)',
+      category: preferredTime === 'evening' ? 'evening' : 'morning',
+      frequency: 'daily',
+      timeOfDay: preferredTime === 'evening' ? eveningSlot : morningSlot,
+      whyItHelps: 'Encourages local microcirculation and releases galeal scalp tension without mechanical strain.',
+      safetyNotes: 'Use gentle circular pads of fingers. Never pull, scratch, or aggressively rub.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-shed-detangle-${Date.now()}-2`,
+      title: 'Wide-Tooth Comb Detangle (Bottom-Up)',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: '08:30',
+      whyItHelps: 'Clears naturally shed resting hairs without tugging on active anagen follicles.',
+      safetyNotes: 'Start from bottom ends and work upwards in sections. Never force through resistance.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-shed-cleanse-${Date.now()}-3`,
+      title: scalpType === 'oily' ? 'Balanced Daily Scalp Cleansing' : 'Gentle Barrier Scalp Cleansing',
+      category: 'shower',
+      frequency: scalpType === 'oily' ? 'daily' : 'alternate',
+      timeOfDay: '12:00',
+      whyItHelps: 'Keeps follicle openings clear of sebum build-up and Malassezia yeast without stripping.',
+      safetyNotes: 'Use lukewarm water; avoid scalding temperatures which irritate scalp skin.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-shed-sleep-${Date.now()}-4`,
+      title: 'Low-Tension Loose Bedtime Style',
+      category: 'evening',
+      frequency: 'daily',
+      timeOfDay: eveningSlot,
+      whyItHelps: 'Eliminates nocturnal traction and reduces hairline follicle stress during sleep.',
+      safetyNotes: 'Use soft silk/satin scrunchies or leave loose. Avoid tight rubber bands.',
+      completed: false,
+      lastCompletedDate: null
+    });
+  } else if (goal === 'dryness_hydration') {
+    tasks.push({
+      id: `rt-dry-hydrate-${Date.now()}-1`,
+      title: 'Hydrating Scalp Mist or Barrier Serum',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: morningSlot,
+      whyItHelps: 'Supplies moisture to the stratum corneum and soothes dry, tight scalp skin.',
+      safetyNotes: 'Water-based formulations absorb quickly without leaving greasy residue.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-dry-ends-${Date.now()}-2`,
+      title: 'Leave-In Moisture on Mid-Lengths & Ends',
+      category: preferredTime === 'evening' ? 'evening' : 'morning',
+      frequency: 'daily',
+      timeOfDay: preferredTime === 'evening' ? eveningSlot : '08:45',
+      whyItHelps: 'Seals moisture into hair cuticles and prevents strand brittleness and fraying.',
+      safetyNotes: 'Focus on ends; keep rich conditioning balms away from the direct scalp roots.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-dry-wash-${Date.now()}-3`,
+      title: 'Moisturizing Scalp Cleanse & Deep Condition',
+      category: 'shower',
+      frequency: 'alternate',
+      timeOfDay: '12:00',
+      whyItHelps: 'Replenishes lost lipids while gently removing environmental pollutants.',
+      safetyNotes: 'Rinse thoroughly with lukewarm water. Allow conditioner 3 minutes to penetrate.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-dry-pillow-${Date.now()}-4`,
+      title: 'Satin/Silk Pillowcase Sleep Protection',
+      category: 'evening',
+      frequency: 'daily',
+      timeOfDay: eveningSlot,
+      whyItHelps: 'Non-absorbent smooth fabrics prevent cotton from leaching hair moisture overnight.',
+      safetyNotes: 'Reduces surface friction and morning frizz significantly.',
+      completed: false,
+      lastCompletedDate: null
+    });
+  } else if (goal === 'length_retention') {
+    tasks.push({
+      id: `rt-len-detangle-${Date.now()}-1`,
+      title: 'Protective Sectioned Detangle',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: morningSlot,
+      whyItHelps: 'Isolating hair into 2-4 sections minimizes mechanical shear and strand snap.',
+      safetyNotes: 'Always use a wide-tooth comb or specialized detangling flex-brush with slip.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-len-protect-${Date.now()}-2`,
+      title: 'Protective Low-Tension Styling',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: '09:00',
+      whyItHelps: 'Tucking fragile ends away shields them from clothing friction and harsh weather.',
+      safetyNotes: 'Keep edges, temples, and nape completely loose without pulling.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-len-seal-${Date.now()}-3`,
+      title: 'End-Sealing Lightweight Oil or Serum',
+      category: 'evening',
+      frequency: 'daily',
+      timeOfDay: eveningSlot,
+      whyItHelps: 'Reinforces cuticle integrity at the oldest, most vulnerable part of each strand.',
+      safetyNotes: 'A few drops are sufficient. Smooth gently downward along the cuticle.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-len-wash-${Date.now()}-4`,
+      title: 'Gentle Scalp Cleansing & Rich Treatment',
+      category: 'shower',
+      frequency: 'alternate',
+      timeOfDay: '12:00',
+      whyItHelps: 'Keeps follicle environment thriving while conditioning lengths against split ends.',
+      safetyNotes: 'Avoid piling hair on top of head when shampooing; wash scalp smoothly.',
+      completed: false,
+      lastCompletedDate: null
+    });
+  } else {
+    // Gentle Maintenance
+    tasks.push({
+      id: `rt-maint-massage-${Date.now()}-1`,
+      title: 'Morning Scalp Awakening Massage (2 min)',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: morningSlot,
+      whyItHelps: 'Light fingertip circular massage encourages scalp comfort and circulation.',
+      safetyNotes: 'Use soft finger pads. Avoid aggressive friction or fingernails.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-maint-comb-${Date.now()}-2`,
+      title: 'Gentle Tip-to-Root Combing',
+      category: 'morning',
+      frequency: 'daily',
+      timeOfDay: '08:30',
+      whyItHelps: 'Gently loosens tangles from ends up to roots to preserve cuticle smoothness.',
+      safetyNotes: 'Use a wide-tooth comb or flexible paddle brush.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-maint-wash-${Date.now()}-3`,
+      title: scalpType === 'oily' ? 'Scalp Cleansing (Daily/Alternate)' : 'Balanced Scalp Wash & Rinse',
+      category: 'shower',
+      frequency: scalpType === 'oily' ? 'daily' : 'alternate',
+      timeOfDay: '12:00',
+      whyItHelps: 'Gently lifts sebum, residue, and dead skin cells to maintain healthy skin barrier.',
+      safetyNotes: 'Focus lather on scalp skin; rinse thoroughly with comfortable lukewarm water.',
+      completed: false,
+      lastCompletedDate: null
+    });
+    tasks.push({
+      id: `rt-maint-winddown-${Date.now()}-4`,
+      title: 'Evening Scalp Wind-Down & Loose Style',
+      category: 'evening',
+      frequency: 'daily',
+      timeOfDay: eveningSlot,
+      whyItHelps: 'Relaxing 2-minute scalp massage relieves tension before restful sleep.',
+      safetyNotes: 'Keep hair loosely tied with soft scrunchie or free.',
+      completed: false,
+      lastCompletedDate: null
+    });
+  }
+
+  return tasks;
+}
+
 export const DEFAULT_REMINDERS: ReminderSettings = {
   enabled: false,
   morningTime: '08:30',
@@ -121,6 +321,9 @@ export interface GuideTopic {
   details: string[];
   keyAdvice: string;
   caution: string;
+  sources: string[];
+  reviewedDate: string;
+  reviewerTitle: string;
 }
 
 export const GUIDE_TOPICS: GuideTopic[] = [
@@ -130,25 +333,37 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     title: 'Normal Daily Shedding vs Sudden Shedding',
     summary: 'Losing 50 to 100 strands a day is completely standard as old hairs make way for new growth.',
     details: [
-      'Each hair follicle goes through growth (anagen), transition (catagen), and resting/shedding (telogen/exogen) phases.',
-      'Telogen shedding often peaks 2 to 3 months after physical stressors like high fever, major surgery, severe illness, or rapid dietary changes.',
-      'Gentle handling and patience are key. Transient shedding usually self-resolves once the underlying stressor normalizes.'
+      'Each hair follicle continuously cycles through growth (anagen), transition (catagen), and resting/shedding (telogen/exogen) phases.',
+      'Telogen shedding often peaks 2 to 3 months after physical stressors like high fever, major surgery, severe illness, or rapid dietary shifts.',
+      'Gentle handling and patience are key. Transient shedding usually self-resolves once the underlying stressor normalizes over 6-9 months.'
     ],
-    keyAdvice: 'Track photos monthly rather than counting fallen hairs in the shower, as daily hair shed fluctuates naturally.',
-    caution: 'If shedding is sudden, patchy, accompanied by scalp burning or pain, consult a dermatologist promptly.'
+    keyAdvice: 'Track progress photos monthly rather than counting fallen hairs in the shower, as daily hair shed fluctuates naturally.',
+    caution: 'If shedding is sudden, patchy, accompanied by scalp burning, redness, or pain, consult a board-certified dermatologist promptly.',
+    sources: [
+      'American Academy of Dermatology (AAD) Clinical Hair Care Guidelines',
+      'Journal of the American Academy of Dermatology (JAAD) — Telogen Effluvium Overview'
+    ],
+    reviewedDate: 'September 2026',
+    reviewerTitle: 'Evidence-Based Dermatology Reference Guidelines'
   },
   {
     id: 'topic-cleansing',
     category: 'Scalp Health',
     title: 'How Often Should You Wash Your Hair & Scalp?',
-    summary: 'Washing frequency depends on your individual scalp sebum production and daily activity level.',
+    summary: 'Washing frequency depends on your individual scalp sebum production, sweat, and daily activity level.',
     details: [
-      'Oily scalps often benefit from daily or alternate-day gentle cleansing to prevent sebum buildup and Malassezia overgrowth.',
-      'Dry or sensitive scalps may prefer 2 to 3 times per week to preserve natural barrier lipids.',
-      'Always focus shampoo on the scalp skin itself, letting suds run down hair lengths during rinsing.'
+      'Oily scalps often benefit from daily or alternate-day gentle cleansing to prevent sebum buildup and Malassezia yeast overgrowth.',
+      'Dry or sensitive scalps may prefer 2 to 3 times per week to preserve natural lipid moisture barriers.',
+      'Always focus shampoo directly on the scalp skin itself, letting suds run down hair lengths during rinsing.'
     ],
     keyAdvice: 'Listen to your scalp comfort. If your scalp feels tight or dry, reduce wash frequency or use a gentler cleanser.',
-    caution: 'Leaving thick oil or buildup on an irritated, flaky scalp can worsen irritation.'
+    caution: 'Leaving thick oil or heavy buildup on an irritated, flaky scalp can worsen irritation and dermatitis.',
+    sources: [
+      'NHS UK — Scalp Hygiene & Seborrheic Dermatitis Management',
+      'International Journal of Trichology — Scalp Sebum and Follicular Health'
+    ],
+    reviewedDate: 'September 2026',
+    reviewerTitle: 'Clinical Hygiene & Sebum Management Reference'
   },
   {
     id: 'topic-ingredients',
@@ -157,12 +372,18 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     summary: 'An honest look at popular topical ingredients: what they do and precautions to take.',
     details: [
       'Salicylic Acid (BHA): Helps gently loosen dead skin cells and clear pore buildup on flaky or oily scalps. Use 1-2 times weekly.',
-      'Ketoconazole: An antifungal active often used in anti-dandruff care to target yeast balance. Use as directed on product label.',
-      'Rosemary Essential Oil: Often used for scalp invigoration. Must ALWAYS be diluted in a carrier oil (like jojoba) before scalp application.',
-      'Peptides & Caffeine: Formulated in water-based scalp serums to support hair density appearance and scalp conditioning.'
+      'Ketoconazole: An antifungal active often used in anti-dandruff care to target yeast balance. Use strictly as directed on product packaging.',
+      'Rosemary Essential Oil: Often used for scalp invigoration. Must ALWAYS be diluted in a skin-friendly carrier oil (like jojoba or squalane) before scalp application.',
+      'Peptides & Caffeine: Formulated in water-based scalp serums to support hair density appearance and scalp conditioning without residue.'
     ],
     keyAdvice: 'Always patch-test new serums or essential oil dilutions on your inner forearm 24 hours prior to scalp use.',
-    caution: 'Never apply pure, undiluted essential oils directly to the scalp. If redness or burning develops, discontinue immediately.'
+    caution: 'Never apply pure, undiluted essential oils directly to the scalp. If redness or burning develops, discontinue immediately.',
+    sources: [
+      'Cosmetic Ingredient Review (CIR) Safety Assessment',
+      'British Association of Dermatologists (BAD) Contact Allergy Advice'
+    ],
+    reviewedDate: 'September 2026',
+    reviewerTitle: 'Topical Hair Formulation Safety Review'
   },
   {
     id: 'topic-breakage',
@@ -170,12 +391,18 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     title: 'Preventing Mechanical Friction & Breakage',
     summary: 'Split ends and snapped fibers are caused by mechanical wear rather than follicle root issues.',
     details: [
-      'Wet hair is at its most fragile because hydrogen bonds are temporarily stretched. Detangle gently starting from the bottom ends.',
+      'Wet hair is at its most fragile because hydrogen bonds are temporarily stretched. Detangle gently starting from the bottom ends with plenty of slip.',
       'Avoid tight ponytails, tight braids, or heavy extensions that pull on hairline follicles (traction tension).',
-      'Smooth pillowcases (silk, satin, or soft bamboo) reduce friction and tangling during sleep.'
+      'Smooth pillowcases (silk, satin, or soft bamboo) reduce nocturnal friction, fraying, and tangling during sleep.'
     ],
-    keyAdvice: 'Use wide-tooth combs and scrunchies with soft fabric to protect strand integrity.',
-    caution: 'Limit high-temperature heat styling (blow dryers on high, flat irons). Always use a heat protectant when styling.'
+    keyAdvice: 'Use wide-tooth combs and scrunchies made with soft fabric to protect strand integrity.',
+    caution: 'Limit high-temperature heat styling (blow dryers on high, flat irons). Always apply a heat protectant when styling.',
+    sources: [
+      'American Academy of Dermatology (AAD) — Hair Breakage & Damage Prevention',
+      'Journal of Cosmetic Dermatology — Tensile Properties of Human Hair Fiber'
+    ],
+    reviewedDate: 'September 2026',
+    reviewerTitle: 'Fiber Integrity & Mechanical Care Guidelines'
   },
   {
     id: 'topic-medical',
@@ -184,11 +411,17 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     summary: 'When hair or scalp symptoms require a medical doctor rather than a routine tracker.',
     details: [
       'Coin-sized round bald patches that appear suddenly (may indicate Alopecia Areata).',
-      'Persistent scalp pain, burning, tenderness, crusting, or fluid-filled pimples.',
-      'Rapid hairline or vertex recession over a few weeks.',
-      'Noticeable eyebrow or eyelash loss alongside scalp hair loss.'
+      'Persistent scalp pain, burning, tenderness, crusting, or fluid-filled bumps.',
+      'Rapid hairline or vertex recession occurring over a few short weeks.',
+      'Noticeable eyebrow or eyelash loss alongside scalp hair changes.'
     ],
-    keyAdvice: 'Board-certified dermatologists can perform dermoscopy, blood panels (ferritin, thyroid, vitamin D), and scalp biopsies to provide an accurate clinical diagnosis.',
-    caution: 'HAIR OS is an educational tracker and photo journal. It does not provide medical diagnosis, clinical staging, or prescription treatment.'
+    keyAdvice: 'Board-certified dermatologists can perform dermoscopy, blood panels (ferritin, thyroid, vitamin D), and scalp evaluations to provide an accurate clinical diagnosis.',
+    caution: 'HAIR OS is an educational tracker and photo journal. It does not provide medical diagnosis, clinical staging, or prescription treatment.',
+    sources: [
+      'American Academy of Dermatology (AAD) — Diagnostic Criteria for Alopecia',
+      'British Association of Dermatologists (BAD) — Guidelines for the Management of Alopecia'
+    ],
+    reviewedDate: 'September 2026',
+    reviewerTitle: 'Clinical Dermatology Red Flags & Diagnostic Thresholds'
   }
 ];

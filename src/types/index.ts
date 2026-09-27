@@ -1,4 +1,8 @@
 export type ScalpType = 'normal' | 'oily' | 'dry' | 'sensitive' | 'combination';
+export type HairType = 'straight' | 'wavy' | 'curly' | 'coily';
+export type HairGoal = 'gentle_maintenance' | 'shedding_care' | 'dryness_hydration' | 'length_retention';
+export type PreferredTime = 'morning' | 'evening' | 'both' | 'flexible';
+
 export type RoutineCategory = 'morning' | 'evening' | 'shower' | 'all_day';
 export type RoutineFrequency = 'daily' | 'alternate' | 'weekly';
 export type PhotoZone = 'crown' | 'temples' | 'part' | 'overall';
@@ -6,6 +10,9 @@ export type PhotoZone = 'crown' | 'temples' | 'part' | 'overall';
 export interface UserProfile {
   name: string;
   scalpType: ScalpType;
+  hairType?: HairType;
+  hairGoal?: HairGoal;
+  preferredTime?: PreferredTime;
   primaryFocus: string;
   washFrequency: string;
   onboardingCompleted: boolean;

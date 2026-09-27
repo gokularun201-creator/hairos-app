@@ -7,10 +7,10 @@ import {
   Circle, 
   Settings, 
   Sparkles, 
-  ArrowRight,
-  ShieldCheck,
-  Droplets,
-  ChevronRight
+  ShieldCheck, 
+  Droplets, 
+  ChevronRight,
+  BookOpen
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -52,28 +52,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const latestScalpCheck = scalpChecks.length > 0 ? scalpChecks[0] : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xl font-black tracking-tight text-white">HAIR OS</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
-              Server-Free
-            </span>
+    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-24">
+      {/* Top Header — Clear Identity as Hair Care Routine & Journal (Not a phone OS) */}
+      <div className="pt-2">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-black tracking-tight text-white">HAIR OS</span>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30">
+                Hair Care Routine & Journal
+              </span>
+            </div>
+            <p className="text-[11px] text-teal-400/90 font-medium mt-0.5">
+              Server-Free Daily Hair & Scalp Companion
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {profile.name ? `Hello, ${profile.name}` : 'Welcome, Friend'} · {todayDateStr}
-          </p>
+
+          <button
+            onClick={onOpenSettings}
+            aria-label="Settings and Privacy Center"
+            className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors active:scale-95"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
 
-        <button
-          onClick={onOpenSettings}
-          aria-label="Settings and Data Controls"
-          className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        {/* Welcoming Greeting Card */}
+        <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-900/80 border border-slate-800/90 flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-extrabold text-white">
+              {profile.name ? `Hello, ${profile.name} ✨` : 'Welcome ✨'}
+            </h2>
+            <p className="text-[11px] text-slate-400">{todayDateStr}</p>
+          </div>
+          <div className="text-right">
+            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-slate-800/80 text-teal-300 border border-slate-700/50">
+              {profile.primaryFocus || 'Gentle Care'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Main Focus: Two Clear, Obvious Actions */}
@@ -90,8 +107,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <p className="text-xs text-slate-400">
                   {totalRoutines === 0
                     ? 'No habits configured'
-                    : completedCount === 0
-                    ? 'Ready to begin today’s care'
+                    : completedCount === totalRoutines && totalRoutines > 0
+                    ? 'All habits completed today! 🌟'
                     : `${completedCount} of ${totalRoutines} habits completed`}
                 </p>
               </div>
@@ -99,7 +116,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             <button
               onClick={onOpenRoutineTab}
-              className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1"
+              className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1 py-1 px-2 rounded-lg hover:bg-slate-800 transition-colors"
             >
               <span>View All</span>
               <ChevronRight className="w-4 h-4" />
@@ -109,7 +126,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           {/* Progress Bar */}
           {totalRoutines > 0 && (
             <div className="space-y-1">
-              <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden border border-slate-800/60">
                 <div
                   className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-300 rounded-full"
                   style={{ width: `${totalRoutines > 0 ? (completedCount / totalRoutines) * 100 : 0}%` }}
@@ -158,7 +175,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <h3 className="text-base font-extrabold text-white">Progress Photo</h3>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Capture your scalp or hairline under consistent lighting to build an honest photo journal.
+              Capture your scalp or hairline under consistent lighting to build an honest, private journal.
             </p>
           </div>
 
@@ -178,7 +195,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Photo Entry</h4>
           <button
             onClick={onOpenJournalTab}
-            className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1"
+            className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1 py-1 px-2 rounded-lg hover:bg-slate-800 transition-colors"
           >
             <span>Journal</span>
             <ChevronRight className="w-4 h-4" />
@@ -220,7 +237,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         )}
       </div>
 
-      {/* Quick Check-In & Guide Cards */}
+      {/* Quick Scalp & Guide Cards */}
       <div className="grid grid-cols-2 gap-3">
         {/* Scalp Comfort Quick-Check */}
         <div
@@ -248,11 +265,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           className="p-4 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer space-y-2 transition-all active:scale-[0.98]"
         >
           <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <Sparkles className="w-4 h-4" />
+            <BookOpen className="w-4 h-4" />
           </div>
           <div>
             <h5 className="text-xs font-extrabold text-white">Care Guide</h5>
-            <p className="text-[10px] text-slate-400 mt-0.5">Curated tips & ingredients</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Evidence-informed tips</p>
           </div>
         </div>
       </div>
@@ -264,7 +281,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <span>Server-Free & Private</span>
         </div>
         <p className="text-[11px] leading-relaxed text-slate-400">
-          HAIR OS stores all routines and photos exclusively on this device. We do not provide clinical diagnoses, staging, or prescriptions.
+          HAIR OS stores all routines and photos exclusively on your phone. We do not provide clinical diagnoses, medical staging, or prescriptions.
         </p>
       </div>
     </div>

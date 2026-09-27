@@ -8,7 +8,9 @@ import {
   RotateCcw, 
   Check, 
   Lightbulb, 
-  AlertTriangle 
+  AlertTriangle,
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 
 interface PhotoCaptureModalProps {
@@ -72,9 +74,20 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
     };
 
     onSavePhoto(newRecord);
+    handleDiscard();
+  };
+
+  const handleDiscard = () => {
     setCapturedImage(null);
     setNotes('');
+    setErrorMessage(null);
     onClose();
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setNotes('');
+    setErrorMessage(null);
   };
 
   return (
@@ -83,11 +96,16 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-extrabold text-white">Record Progress Photo</h3>
-            <p className="text-xs text-slate-400">Add to your private on-device journal</p>
+            <h3 className="text-base font-extrabold text-white">
+              {capturedImage ? 'Review Progress Photo' : 'Record Progress Photo'}
+            </h3>
+            <p className="text-xs text-slate-400">
+              {capturedImage ? 'Confirm or discard this capture' : 'Private photo stored only on your phone'}
+            </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleDiscard}
+            aria-label="Close"
             className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
@@ -103,7 +121,7 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
         )}
 
         {!capturedImage ? (
-          /* STEP 1: ZONE SELECTION & CAPTURE */
+          /* STEP 1: ZONE SELECTION & PRE-CAPTURE GUIDANCE */
           <div className="space-y-4">
             {/* Zone Selector */}
             <div className="space-y-1.5">
@@ -126,19 +144,22 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
               </div>
             </div>
 
-            {/* Photo Guidelines */}
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl text-[11px] text-slate-400 space-y-1">
+            {/* Repeatable Photo Guidelines */}
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-xs space-y-2">
               <div className="flex items-center space-x-1.5 font-bold text-teal-400">
-                <Lightbulb className="w-3.5 h-3.5" />
-                <span>Taking consistent photos:</span>
+                <Lightbulb className="w-4 h-4 flex-shrink-0" />
+                <span>Consistent Photo Guidelines:</span>
               </div>
-              <p>• Dry hair parted to the target area</p>
-              <p>• Natural daylight without harsh shadows</p>
-              <p>• Hold phone steady ~30 cm away</p>
+              <ul className="text-slate-400 space-y-1 text-[11px]">
+                <li>• <strong>Angle & Parting:</strong> Part hair cleanly at the target area to reveal the scalp surface.</li>
+                <li>• <strong>Consistent Lighting:</strong> Use indirect daylight or bathroom lighting. Avoid harsh phone flash glare.</li>
+                <li>• <strong>Distance:</strong> Hold your camera approximately 25-30 cm away.</li>
+                <li>• <strong>Dry Hair:</strong> Always photograph dry hair; wet hair clumps and exaggerates visible skin.</li>
+              </ul>
             </div>
 
             {/* Capture Buttons */}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-1">
               <button
                 type="button"
                 disabled={isLoading}
@@ -161,7 +182,7 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
             </div>
           </div>
         ) : (
-          /* STEP 2: REVIEW & CONFIRMATION */
+          /* STEP 2: REVIEW STEP WITH RETAKE, SAVE, AND DISCARD BUTTONS */
           <div className="space-y-3.5">
             {/* Image Preview */}
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
@@ -170,7 +191,7 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
                 alt="Captured progress photo"
                 className="w-full h-full object-contain"
               />
-              <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-950/80 text-teal-300">
+              <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-950/80 text-teal-300 backdrop-blur-sm">
                 {zoneOptions.find((z) => z.zone === zone)?.label}
               </span>
             </div>
@@ -182,7 +203,7 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Month 2 baseline, post wash"
+                placeholder="e.g. Month 1 baseline, post wash"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
               />
             </div>
@@ -201,24 +222,36 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
               </select>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex space-x-2 pt-1">
+            {/* Explicit Three Action Buttons: Discard, Retake, and Save Photo */}
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              {/* 1. DISCARD */}
               <button
                 type="button"
-                onClick={() => setCapturedImage(null)}
-                className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-1.5"
+                onClick={handleDiscard}
+                className="py-3 px-2 rounded-2xl bg-slate-800/80 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 font-bold text-xs flex flex-col items-center justify-center space-y-1 active:scale-95 transition-all"
               >
-                <RotateCcw className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
+                <span>Discard</span>
+              </button>
+
+              {/* 2. RETAKE */}
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="py-3 px-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex flex-col items-center justify-center space-y-1 active:scale-95 transition-all"
+              >
+                <RotateCcw className="w-4 h-4 text-teal-400" />
                 <span>Retake</span>
               </button>
 
+              {/* 3. SAVE PHOTO */}
               <button
                 type="button"
                 onClick={handleConfirmSave}
-                className="flex-1 py-3 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-teal-500/20"
+                className="py-3 px-2 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center space-y-1 shadow-lg shadow-teal-500/20 active:scale-95 transition-all"
               >
                 <Check className="w-4 h-4" />
-                <span>Save Photo</span>
+                <span>Save</span>
               </button>
             </div>
           </div>

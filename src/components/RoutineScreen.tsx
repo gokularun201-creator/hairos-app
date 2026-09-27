@@ -7,19 +7,22 @@ import {
   Plus, 
   Bell, 
   Trash2, 
+  Edit3,
   X, 
   ChevronDown, 
   ChevronUp, 
   Sun, 
   Moon, 
   ShowerHead, 
-  Clock 
+  Clock,
+  Sparkles
 } from 'lucide-react';
 
 interface RoutineScreenProps {
   routines: RoutineTask[];
   onToggleTask: (taskId: string) => void;
   onAddTask: (task: RoutineTask) => void;
+  onUpdateTask: (task: RoutineTask) => void;
   onDeleteTask: (taskId: string) => void;
   onOpenReminders: () => void;
 }
@@ -28,14 +31,16 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
   routines,
   onToggleTask,
   onAddTask,
+  onUpdateTask,
   onDeleteTask,
   onOpenReminders
 }) => {
   const [filter, setFilter] = useState<'all' | RoutineCategory>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingTask, setEditingTask] = useState<RoutineTask | null>(null);
 
-  // Form state for adding custom task
+  // Form state for adding/editing task
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<RoutineCategory>('morning');
   const [timeOfDay, setTimeOfDay] = useState('08:00');
@@ -49,24 +54,57 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
 
   const completedCount = routines.filter((r) => r.completed).length;
 
+  const handleOpenAdd = () => {
+    setTitle('');
+    setCategory('morning');
+    setTimeOfDay('08:00');
+    setWhyItHelps('');
+    setSafetyNotes('');
+    setIsAdding(true);
+  };
+
+  const handleOpenEdit = (task: RoutineTask) => {
+    setEditingTask(task);
+    setTitle(task.title);
+    setCategory(task.category);
+    setTimeOfDay(task.timeOfDay);
+    setWhyItHelps(task.whyItHelps);
+    setSafetyNotes(task.safetyNotes);
+  };
+
   const handleSaveCustomTask = () => {
     if (!title.trim()) return;
-    const newTask: RoutineTask = {
-      id: `rt-${Date.now()}`,
-      title: title.trim(),
-      category,
-      frequency: 'daily',
-      timeOfDay,
-      whyItHelps: whyItHelps.trim() || 'Custom care habit added to support daily scalp and hair consistency.',
-      safetyNotes: safetyNotes.trim() || 'Handle gently without aggressive friction or excessive tension.',
-      completed: false,
-      lastCompletedDate: null
-    };
-    onAddTask(newTask);
+
+    if (editingTask) {
+      const updated: RoutineTask = {
+        ...editingTask,
+        title: title.trim(),
+        category,
+        timeOfDay,
+        whyItHelps: whyItHelps.trim() || editingTask.whyItHelps,
+        safetyNotes: safetyNotes.trim() || editingTask.safetyNotes
+      };
+      onUpdateTask(updated);
+      setEditingTask(null);
+    } else {
+      const newTask: RoutineTask = {
+        id: `rt-${Date.now()}`,
+        title: title.trim(),
+        category,
+        frequency: 'daily',
+        timeOfDay,
+        whyItHelps: whyItHelps.trim() || 'Custom care habit added to support daily scalp and hair consistency.',
+        safetyNotes: safetyNotes.trim() || 'Handle gently without aggressive friction or excessive tension.',
+        completed: false,
+        lastCompletedDate: null
+      };
+      onAddTask(newTask);
+      setIsAdding(false);
+    }
+
     setTitle('');
     setWhyItHelps('');
     setSafetyNotes('');
-    setIsAdding(false);
   };
 
   const getCategoryIcon = (cat: RoutineCategory) => {
@@ -83,15 +121,15 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5">
+    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-24">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-2">
         <div>
           <h2 className="text-xl font-black tracking-tight text-white flex items-center space-x-2">
             <span>Care Routine</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {completedCount} of {routines.length} habits done today
+            {completedCount} of {routines.length} habits completed today
           </p>
         </div>
 
@@ -99,14 +137,14 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
           <button
             onClick={onOpenReminders}
             aria-label="Configure Reminders"
-            className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors active:scale-95"
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-4 h-4 text-teal-400" />
           </button>
           <button
-            onClick={() => setIsAdding(true)}
+            onClick={handleOpenAdd}
             aria-label="Add Custom Habit"
-            className="w-10 h-10 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 flex items-center justify-center transition-colors shadow-lg shadow-teal-500/20"
+            className="w-10 h-10 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 flex items-center justify-center transition-colors shadow-lg shadow-teal-500/20 active:scale-95"
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -175,12 +213,19 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
                           {getCategoryIcon(task.category)}
                           <span>{task.category}</span>
                         </span>
-                        <span className="text-[10px] text-slate-500">· {task.timeOfDay}</span>
+                        <span className="text-[10px] text-teal-400 font-mono">· {task.timeOfDay}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleOpenEdit(task)}
+                      aria-label="Edit habit"
+                      className="p-1.5 text-slate-400 hover:text-teal-400 transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : task.id)}
                       aria-label="Toggle details"
@@ -221,17 +266,22 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
 
       {/* Gentle Philosophy Banner */}
       <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
-        💡 <strong>Consistent, gentle habits matter most.</strong> Avoid harsh friction, tight tension, or scalding water. Feel free to adjust these tasks to fit your personal comfort.
+        💡 <strong>Consistent, gentle habits matter most.</strong> Avoid harsh friction, tight tension, or scalding water. Customize any habit or time to fit your lifestyle.
       </div>
 
-      {/* Add Custom Habit Modal */}
-      {isAdding && (
+      {/* Add / Edit Habit Modal */}
+      {(isAdding || editingTask) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-white">Add Custom Care Habit</h3>
+              <h3 className="text-base font-extrabold text-white">
+                {editingTask ? 'Edit Care Habit' : 'Add Custom Care Habit'}
+              </h3>
               <button
-                onClick={() => setIsAdding(false)}
+                onClick={() => {
+                  setIsAdding(false);
+                  setEditingTask(null);
+                }}
                 className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
@@ -259,47 +309,63 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
                   >
                     <option value="morning">Morning</option>
-                    <option value="shower">Shower / Wash</option>
+                    <option value="shower">Shower</option>
                     <option value="evening">Evening</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Target Time</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Scheduled Time</label>
                   <input
                     type="time"
                     value={timeOfDay}
                     onChange={(e) => setTimeOfDay(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Notes / Why it helps (Optional)</label>
-                <input
-                  type="text"
+                <label className="text-xs font-bold text-slate-300 block mb-1">Why It Helps (Optional)</label>
+                <textarea
                   value={whyItHelps}
                   onChange={(e) => setWhyItHelps(e.target.value)}
-                  placeholder="e.g. Protects hair tips from pillow friction"
+                  placeholder="e.g. Minimizes overnight friction and keeps moisture locked in."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Gentle Tip (Optional)</label>
+                <input
+                  type="text"
+                  value={safetyNotes}
+                  onChange={(e) => setSafetyNotes(e.target.value)}
+                  placeholder="e.g. Keep band loose around edges"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
                 />
               </div>
-            </div>
 
-            <div className="flex space-x-2 pt-2">
-              <button
-                onClick={() => setIsAdding(false)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveCustomTask}
-                className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-teal-500/20"
-              >
-                Save Habit
-              </button>
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdding(false);
+                    setEditingTask(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCustomTask}
+                  className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-teal-500/20 active:scale-95"
+                >
+                  {editingTask ? 'Save Changes' : 'Add Habit'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

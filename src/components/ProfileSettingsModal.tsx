@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, ReminderSettings, ScalpType } from '../types';
+import { UserProfile, ReminderSettings, ScalpType, HairGoal, HairType } from '../types';
 import { NativeService } from '../services/native';
 import { 
   X, 
@@ -10,7 +10,9 @@ import {
   Bell, 
   Check, 
   AlertTriangle,
-  Info
+  Info,
+  Sparkles,
+  Lock
 } from 'lucide-react';
 
 interface ProfileSettingsModalProps {
@@ -38,7 +40,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(profile.name || '');
   const [scalpType, setScalpType] = useState<ScalpType>(profile.scalpType || 'normal');
-  const [primaryFocus, setPrimaryFocus] = useState(profile.primaryFocus || 'Gentle Care & Habit Consistency');
+  const [hairGoal, setHairGoal] = useState<HairGoal>(profile.hairGoal || 'gentle_maintenance');
+  const [hairType, setHairType] = useState<HairType>(profile.hairType || 'wavy');
 
   // Reminders state
   const [notifEnabled, setNotifEnabled] = useState(reminders.enabled);
@@ -54,7 +57,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     if (isOpen) {
       setName(profile.name || '');
       setScalpType(profile.scalpType || 'normal');
-      setPrimaryFocus(profile.primaryFocus || 'Gentle Care & Habit Consistency');
+      setHairGoal(profile.hairGoal || 'gentle_maintenance');
+      setHairType(profile.hairType || 'wavy');
       setNotifEnabled(reminders.enabled);
       setMorningTime(reminders.morningTime || '08:30');
       setEveningTime(reminders.eveningTime || '20:30');
@@ -64,13 +68,22 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   if (!isOpen) return null;
 
   const handleSaveProfile = () => {
+    const goalLabels: Record<HairGoal, string> = {
+      gentle_maintenance: 'Gentle Maintenance & Consistency',
+      shedding_care: 'Shedding Care & Scalp Awareness',
+      dryness_hydration: 'Dryness & Scalp Hydration',
+      length_retention: 'Length Retention & Strength'
+    };
+
     onSaveProfile({
       ...profile,
       name: name.trim(),
       scalpType,
-      primaryFocus
+      hairGoal,
+      hairType,
+      primaryFocus: goalLabels[hairGoal] || profile.primaryFocus
     });
-    setStatusMessage('Profile preferences updated!');
+    setStatusMessage('Preferences updated successfully!');
     setTimeout(() => setStatusMessage(null), 2500);
   };
 
@@ -136,17 +149,32 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     { type: 'combination', label: 'Combination' }
   ];
 
+  const goalOptions: { goal: HairGoal; label: string }[] = [
+    { goal: 'gentle_maintenance', label: 'Gentle Maintenance' },
+    { goal: 'shedding_care', label: 'Shedding Care' },
+    { goal: 'dryness_hydration', label: 'Dryness & Hydration' },
+    { goal: 'length_retention', label: 'Length Retention' }
+  ];
+
+  const hairTypeOptions: { type: HairType; label: string }[] = [
+    { type: 'straight', label: 'Straight' },
+    { type: 'wavy', label: 'Wavy' },
+    { type: 'curly', label: 'Curly' },
+    { type: 'coily', label: 'Coily' }
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 space-y-5 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 space-y-5 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-extrabold text-white">Settings & Privacy</h3>
-            <p className="text-xs text-slate-400">Manage preferences and local device storage</p>
+            <p className="text-xs text-slate-400">Preferences and on-device storage</p>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close settings"
             className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
@@ -161,9 +189,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </div>
         )}
 
-        {/* SECTION 1: PROFILE PREFERENCES */}
+        {/* SECTION 1: PROFILE & CARE PREFERENCES */}
         <div className="space-y-3 p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Profile Preferences</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Care Preferences</h4>
 
           <div>
             <label className="text-xs font-medium text-slate-400 block mb-1">Your Name / Nickname</label>
@@ -177,17 +205,17 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-400 block mb-1">Scalp Tendency</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {scalpOptions.map((opt) => (
+            <label className="text-xs font-medium text-slate-400 block mb-1">Primary Focus</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {goalOptions.map((opt) => (
                 <button
-                  key={opt.type}
+                  key={opt.goal}
                   type="button"
-                  onClick={() => setScalpType(opt.type)}
+                  onClick={() => setHairGoal(opt.goal)}
                   className={`p-2 rounded-xl border text-[11px] font-semibold text-center transition-colors ${
-                    scalpType === opt.type
-                      ? 'bg-teal-500/15 border-teal-500/50 text-teal-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                    hairGoal === opt.goal
+                      ? 'bg-teal-500/15 border-teal-500/50 text-teal-300 font-bold'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   {opt.label}
@@ -196,9 +224,37 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium text-slate-400 block mb-1">Hair Type</label>
+              <select
+                value={hairType}
+                onChange={(e) => setHairType(e.target.value as HairType)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+              >
+                {hairTypeOptions.map((opt) => (
+                  <option key={opt.type} value={opt.type}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-400 block mb-1">Scalp Tendency</label>
+              <select
+                value={scalpType}
+                onChange={(e) => setScalpType(e.target.value as ScalpType)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+              >
+                {scalpOptions.map((opt) => (
+                  <option key={opt.type} value={opt.type}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <button
             onClick={handleSaveProfile}
-            className="w-full py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20"
+            className="w-full py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-transform"
           >
             Save Preferences
           </button>
@@ -257,7 +313,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           )}
         </div>
 
-        {/* SECTION 3: LOCAL DATA & PRIVACY CENTER */}
+        {/* SECTION 3: LOCAL DEVICE PRIVACY & DATA OWNERSHIP */}
         <div className="space-y-3 p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
           <div className="flex items-center space-x-2 text-emerald-400">
             <ShieldCheck className="w-4 h-4" />
@@ -265,20 +321,23 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </div>
 
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            HAIR OS operates 100% server-free. All profile data, habits, scalp checks, and photos stay on this phone. We never upload or transmit your personal data.
+            HAIR OS operates 100% server-free. All profile data, habits, scalp checks, and photos stay on this phone. Automatic cloud backup is disabled so data is never uploaded to remote servers or unexpectedly restored after uninstalling.
           </p>
 
           {/* Export / Import Buttons */}
           <div className="space-y-2 pt-1">
             <button
-              onClick={onExportData}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center space-x-2"
+              onClick={() => {
+                onExportData();
+                onClose();
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center space-x-2 active:scale-95 transition-transform"
             >
               <Download className="w-4 h-4 text-teal-400" />
               <span>Export All Data (JSON)</span>
             </button>
 
-            <label className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center space-x-2 cursor-pointer">
+            <label className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center space-x-2 cursor-pointer active:scale-95 transition-transform">
               <Upload className="w-4 h-4 text-cyan-400" />
               <span>Import Data from File</span>
               <input
@@ -338,7 +397,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         )}
 
         <div className="text-center pt-1">
-          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.0.0 (Build 2) · Server-Free Care Journal</span>
+          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.1.0 (Build 3) · Server-Free Care Journal</span>
         </div>
       </div>
     </div>

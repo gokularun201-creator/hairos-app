@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, ReminderSettings } from './types';
+import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, ReminderSettings, ExportDataPackage } from './types';
 import { storage } from './services/storage';
-import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS } from './data/defaultData';
+import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, createStarterRoutine } from './data/defaultData';
 import { BottomNavBar } from './components/BottomNavBar';
 import { HomeScreen } from './components/HomeScreen';
 import { RoutineScreen } from './components/RoutineScreen';
@@ -11,6 +11,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { PhotoCaptureModal } from './components/PhotoCaptureModal';
 import { ScalpCheckModal } from './components/ScalpCheckModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { ExportFeedbackModal } from './components/ExportFeedbackModal';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'home' | 'routine' | 'journal' | 'guide'>('home');
@@ -27,6 +28,12 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Export Feedback Modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportedDataPackage, setExportedDataPackage] = useState<ExportDataPackage | null>(null);
+  const [exportedFileName, setExportedFileName] = useState('');
+  const [exportedFileSize, setExportedFileSize] = useState(0);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -91,6 +98,14 @@ export const App: React.FC = () => {
     showToast('New habit added to routine!');
   };
 
+  // Update Task
+  const handleUpdateTask = async (updatedTask: RoutineTask) => {
+    const updated = routines.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+    setRoutines(updated);
+    await storage.saveRoutines(updated);
+    showToast('Habit updated!');
+  };
+
   // Delete Task
   const handleDeleteTask = async (taskId: string) => {
     const updated = routines.filter((t) => t.id !== taskId);
@@ -129,13 +144,34 @@ export const App: React.FC = () => {
     await storage.saveProfile(newProfile);
   };
 
+  // Onboarding Complete Handler
+  const handleOnboardingComplete = async (newProfile: UserProfile, generateStarter: boolean) => {
+    await handleSaveProfile(newProfile);
+    setIsOnboardingOpen(false);
+
+    // Only create starter routine if user chose to personalize AND had NO existing routines!
+    if (generateStarter && routines.length === 0) {
+      const starterTasks = createStarterRoutine(
+        newProfile.hairGoal,
+        newProfile.hairType,
+        newProfile.scalpType,
+        newProfile.preferredTime
+      );
+      setRoutines(starterTasks);
+      await storage.saveRoutines(starterTasks);
+      showToast('Personalized starter routine created!');
+    } else {
+      showToast('Welcome to HAIR OS!');
+    }
+  };
+
   // Save Reminders
   const handleSaveReminders = async (newReminders: ReminderSettings) => {
     setReminders(newReminders);
     await storage.saveReminders(newReminders);
   };
 
-  // Export Data
+  // Export Data with explicit feedback dialog
   const handleExportData = async () => {
     try {
       const dataPackage = await storage.exportAllData();
@@ -143,14 +179,22 @@ export const App: React.FC = () => {
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const dateStr = new Date().toISOString().split('T')[0];
+      const fileName = `HairOS_Backup_${dateStr}.json`;
+
+      // Trigger standard browser/WebView download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `HairOS_Backup_${dateStr}.json`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('Export file downloaded to your device!');
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      // Open Feedback Dialog with persistence notice and share options
+      setExportedDataPackage(dataPackage);
+      setExportedFileName(fileName);
+      setExportedFileSize(blob.size);
+      setIsExportModalOpen(true);
     } catch (err: any) {
       showToast(`Export error: ${err.message}`);
     }
@@ -224,6 +268,7 @@ export const App: React.FC = () => {
           routines={routines}
           onToggleTask={handleToggleTask}
           onAddTask={handleAddTask}
+          onUpdateTask={handleUpdateTask}
           onDeleteTask={handleDeleteTask}
           onOpenReminders={() => setIsSettingsOpen(true)}
         />
@@ -246,11 +291,7 @@ export const App: React.FC = () => {
       {/* Modals */}
       <OnboardingModal
         isOpen={isOnboardingOpen}
-        onComplete={(newProfile) => {
-          handleSaveProfile(newProfile);
-          setIsOnboardingOpen(false);
-          showToast(`Welcome to HAIR OS!`);
-        }}
+        onComplete={handleOnboardingComplete}
       />
 
       <PhotoCaptureModal
@@ -278,6 +319,14 @@ export const App: React.FC = () => {
           onClearAllData={handleClearAllData}
         />
       )}
+
+      <ExportFeedbackModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        fileName={exportedFileName}
+        dataPackage={exportedDataPackage}
+        fileSizeBytes={exportedFileSize}
+      />
     </div>
   );
 };

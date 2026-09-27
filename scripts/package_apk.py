@@ -70,7 +70,7 @@ def main():
                 compress_type = zipfile.ZIP_STORED if ext in uncompressed_exts else zipfile.ZIP_DEFLATED
 
                 if item.filename == "AndroidManifest.xml":
-                    print("  Replacing AndroidManifest.xml (versionCode=2, versionName=2.0.0)")
+                    print("  Replacing AndroidManifest.xml (versionCode=3, versionName=2.1.0)")
                     zout.writestr(item.filename, new_manifest, compress_type=compress_type)
                 elif item.filename == "assets/public/index.html":
                     print("  Replacing assets/public/index.html")
