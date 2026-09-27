@@ -139,28 +139,43 @@ export const App: React.FC = () => {
     showToast('Habit removed from routine.');
   };
 
-  // Toggle Daily Checklist Card (Morning, Afternoon, Night)
-  const handleToggleDailyCard = async (card: 'morning' | 'afternoon' | 'night') => {
-    const updated = { ...dailyChecklistState };
-    if (card === 'morning') {
-      updated.morningCompleted = !updated.morningCompleted;
-    } else if (card === 'afternoon') {
-      updated.afternoonCompleted = !updated.afternoonCompleted;
-    } else if (card === 'night') {
-      updated.nightCompleted = !updated.nightCompleted;
-    }
+  // Toggle Individual Checklist Item
+  const handleToggleChecklistItem = async (key: keyof DailyChecklistState) => {
+    const updated = {
+      ...dailyChecklistState,
+      [key]: !dailyChecklistState[key]
+    };
     setDailyChecklistState(updated);
     await storage.saveDailyChecklistState(updated);
   };
 
-  // Select Night Food Option
-  const handleSelectNightFood = async (food: string) => {
+  // Skip section without guilt
+  const handleSkipSection = async (section: 'morning' | 'afternoon' | 'night') => {
+    const skipKey = `${section}Skipped` as keyof DailyChecklistState;
+    const nextState = !dailyChecklistState[skipKey];
     const updated = {
       ...dailyChecklistState,
-      nightFoodSelected: food
+      [skipKey]: nextState
     };
     setDailyChecklistState(updated);
     await storage.saveDailyChecklistState(updated);
+    if (nextState) {
+      showToast(`${section.charAt(0).toUpperCase() + section.slice(1)} skipped today (no guilt)`);
+    } else {
+      showToast(`${section.charAt(0).toUpperCase() + section.slice(1)} routine resumed`);
+    }
+  };
+
+  // Dismiss monthly photo for this month
+  const handleDismissMonthlyPhoto = async () => {
+    const currentYearMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const updated = {
+      ...dailyChecklistState,
+      monthlyPhotoDismissedMonth: currentYearMonth
+    };
+    setDailyChecklistState(updated);
+    await storage.saveDailyChecklistState(updated);
+    showToast('Monthly photo skipped for this month.');
   };
 
   // Save Food, Water & Wash Configuration
@@ -326,8 +341,9 @@ export const App: React.FC = () => {
           scalpChecks={scalpChecks}
           foodWaterConfig={foodWaterConfig}
           dailyChecklistState={dailyChecklistState}
-          onToggleDailyCard={handleToggleDailyCard}
-          onSelectNightFood={handleSelectNightFood}
+          onToggleChecklistItem={handleToggleChecklistItem}
+          onSkipSection={handleSkipSection}
+          onDismissMonthlyPhoto={handleDismissMonthlyPhoto}
           onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
           onToggleTask={handleToggleTask}
           onOpenRoutineTab={() => setCurrentTab('routine')}

@@ -207,8 +207,11 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
               Edit
             </button>
           </div>
-          <div className="mt-2 text-[10px] text-slate-400 leading-normal border-t border-slate-800/60 pt-1.5">
-            Treat this schedule as your chosen preference, not an absolute rule. Wash when your scalp needs cleansing.
+          <div className="mt-2 text-[10px] text-slate-400 leading-normal border-t border-slate-800/60 pt-1.5 space-y-1">
+            <p>Treat this schedule as your chosen preference, not an absolute rule. Wash when your scalp needs cleansing.</p>
+            {foodWaterConfig.washPostCareTip && (
+              <p className="text-cyan-300 font-medium">💡 {foodWaterConfig.washPostCareTip}</p>
+            )}
           </div>
         </div>
       )}

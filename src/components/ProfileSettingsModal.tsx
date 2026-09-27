@@ -418,7 +418,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         )}
 
         <div className="text-center pt-1">
-          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.2.0 (Build 4) · Server-Free Care Journal</span>
+          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.3.0 (Build 5) · Server-Free Care Journal</span>
         </div>
       </div>
     </div>

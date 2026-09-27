@@ -6,12 +6,11 @@ import {
   Utensils, 
   Calendar, 
   Bell, 
-  Plus, 
-  Trash2, 
-  AlertCircle, 
-  Check, 
+  ShowerHead,
+  Sparkles,
+  Camera,
   Info,
-  ShowerHead
+  Check
 } from 'lucide-react';
 
 interface FoodWaterSettingsModalProps {
@@ -27,25 +26,50 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
   config,
   onSaveConfig
 }) => {
-  const [morningWater, setMorningWater] = useState(config.morningWaterGlasses);
-  const [morningFood, setMorningFood] = useState(config.morningFood);
-  const [afternoonWater, setAfternoonWater] = useState(config.afternoonWaterGlasses);
-  const [afternoonFood, setAfternoonFood] = useState(config.afternoonFood);
-  const [nightWater, setNightWater] = useState(config.nightWaterGlasses);
-  const [nightFoodOptions, setNightFoodOptions] = useState<string[]>(config.nightFoodOptions);
-  const [newNightFood, setNewNightFood] = useState('');
+  // Morning settings
+  const [morningWaterGoal, setMorningWaterGoal] = useState(
+    config.morningWaterGoal || 'Drink water toward daily goal (e.g. 2 glasses)'
+  );
+  const [morningFoodSuggestion, setMorningFoodSuggestion] = useState(
+    config.morningFoodSuggestion || 'Eat breakfast with a protein option (e.g. eggs, curd, dal, or beans)'
+  );
+  const [morningTime, setMorningTime] = useState(config.morningReminderTime || '08:00');
+
+  // Afternoon settings
+  const [afternoonWaterGoal, setAfternoonWaterGoal] = useState(
+    config.afternoonWaterGoal || 'Drink water (e.g. 2-3 glasses)'
+  );
+  const [afternoonFoodSuggestion, setAfternoonFoodSuggestion] = useState(
+    config.afternoonFoodSuggestion || 'Eat lunch'
+  );
+  const [afternoonTime, setAfternoonTime] = useState(config.afternoonReminderTime || '13:00');
+
+  // Night settings
+  const [nightWaterGoal, setNightWaterGoal] = useState(
+    config.nightWaterGoal || 'Drink water if wanted (no set amount required before bed)'
+  );
+  const [nightFoodSuggestion, setNightFoodSuggestion] = useState(
+    config.nightFoodSuggestion || 'Eat dinner'
+  );
+  const [nightTime, setNightTime] = useState(config.nightReminderTime || '20:30');
 
   // Wash schedule
-  const [washEnabled, setWashEnabled] = useState(config.washEnabled);
-  const [washDays, setWashDays] = useState<number[]>(config.washDays);
+  const [washEnabled, setWashEnabled] = useState(config.washEnabled ?? true);
+  const [washDays, setWashDays] = useState<number[]>(config.washDays || [1, 4]);
+  const [washTime, setWashTime] = useState(config.washReminderTime || '08:00');
+  const [washPostCareTip, setWashPostCareTip] = useState(
+    config.washPostCareTip || 'After washing: Apply conditioner to mid-lengths and ends, and pat dry gently with a soft towel (avoid harsh rubbing).'
+  );
 
-  // Reminder times
-  const [remindersEnabled, setRemindersEnabled] = useState(config.remindersEnabled);
-  const [morningTime, setMorningTime] = useState(config.morningReminderTime);
-  const [afternoonTime, setAfternoonTime] = useState(config.afternoonReminderTime);
-  const [nightTime, setNightTime] = useState(config.nightReminderTime);
-  const [washTime, setWashTime] = useState(config.washReminderTime);
+  // Daily detangle tip & monthly photo
+  const [dailyDetangleEnabled, setDailyDetangleEnabled] = useState(config.dailyDetangleEnabled ?? true);
+  const [dailyDetangleTip, setDailyDetangleTip] = useState(
+    config.dailyDetangleTip || 'Detangle gently starting at ends; avoid tight hairstyles that pull.'
+  );
+  const [monthlyPhotoPromptEnabled, setMonthlyPhotoPromptEnabled] = useState(config.monthlyPhotoPromptEnabled ?? true);
 
+  // Reminders
+  const [remindersEnabled, setRemindersEnabled] = useState(config.remindersEnabled ?? false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -73,36 +97,26 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
     }
   };
 
-  const handleAddNightFood = () => {
-    if (!newNightFood.trim()) return;
-    setNightFoodOptions([...nightFoodOptions, newNightFood.trim()]);
-    setNewNightFood('');
-  };
-
-  const handleRemoveNightFood = (index: number) => {
-    if (nightFoodOptions.length <= 1) {
-      setStatusMessage('Keep at least one night food option.');
-      setTimeout(() => setStatusMessage(null), 2500);
-      return;
-    }
-    setNightFoodOptions(nightFoodOptions.filter((_, i) => i !== index));
-  };
-
   const handleSave = () => {
     const updated: DailyFoodWaterConfig = {
-      morningWaterGlasses: Math.max(1, morningWater),
-      morningFood: morningFood.trim() || '2 eggs',
-      afternoonWaterGlasses: Math.max(1, afternoonWater),
-      afternoonFood: afternoonFood.trim() || 'Lunch',
-      nightWaterGlasses: Math.max(1, nightWater),
-      nightFoodOptions: nightFoodOptions.length > 0 ? nightFoodOptions : ['2 eggs', '10 almonds', 'A normal serving of fish'],
+      ...config,
+      morningWaterGoal: morningWaterGoal.trim() || 'Drink water toward daily goal',
+      morningFoodSuggestion: morningFoodSuggestion.trim() || 'Eat breakfast with protein',
+      afternoonWaterGoal: afternoonWaterGoal.trim() || 'Drink water',
+      afternoonFoodSuggestion: afternoonFoodSuggestion.trim() || 'Eat lunch',
+      nightWaterGoal: nightWaterGoal.trim() || 'Drink water if wanted',
+      nightFoodSuggestion: nightFoodSuggestion.trim() || 'Eat dinner',
       washEnabled,
       washDays,
+      washPostCareTip: washPostCareTip.trim(),
+      dailyDetangleEnabled,
+      dailyDetangleTip: dailyDetangleTip.trim(),
+      monthlyPhotoPromptEnabled,
+      remindersEnabled,
       morningReminderTime: morningTime,
       afternoonReminderTime: afternoonTime,
       nightReminderTime: nightTime,
-      washReminderTime: washTime,
-      remindersEnabled
+      washReminderTime: washTime
     };
 
     onSaveConfig(updated);
@@ -118,8 +132,8 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-extrabold text-white">Food, Water & Wash Schedule</h3>
-            <p className="text-xs text-slate-400">Personalize your daily routine and timing</p>
+            <h3 className="text-base font-extrabold text-white">Checklist & Routine Settings</h3>
+            <p className="text-xs text-slate-400">Personalize suggestions, goals, and timing</p>
           </div>
           <button
             onClick={onClose}
@@ -138,188 +152,135 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
           </div>
         )}
 
-        {/* MEDICAL & FLUID INTAKE DISCLAIMER */}
+        {/* MEDICAL & GROWTH DISCLAIMER */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-xs space-y-1 text-slate-400">
           <div className="flex items-center space-x-1.5 font-bold text-teal-400 text-[11px]">
             <Droplets className="w-3.5 h-3.5" />
-            <span>Fluid & Nutrition Note:</span>
+            <span>Honest Health & Fluid Guidance:</span>
           </div>
           <p className="text-[11px] leading-relaxed">
-            Fluid needs vary by individual, body size, activity level, and climate. Some individuals have a doctor-ordered fluid limit. Adjust your targets to your medical needs. Specific foods and extra water support overall bodily wellness but do not guarantee hair regrowth.
+            Fluid needs vary by person and climate. If you have medical fluid restrictions from a physician, always follow your doctor’s instructions. Balanced foods, hydration, and washing support general wellness and hygiene, but do not guarantee hair growth.
           </p>
         </div>
 
-        {/* SECTION 1: MORNING FOOD & WATER */}
+        {/* SECTION 1: MORNING SUGGESTIONS & TIMING */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2 text-teal-400 font-bold text-xs">
-            <span className="text-sm">☀️</span>
-            <span>Morning Routine Settings</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Water Goal</label>
-              <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={morningWater}
-                  onChange={(e) => setMorningWater(parseInt(e.target.value) || 1)}
-                  className="w-12 bg-transparent text-sm font-bold text-white focus:outline-none"
-                />
-                <span className="text-xs text-slate-400">glasses</span>
-              </div>
+          <div className="flex items-center justify-between text-teal-400 font-bold text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">☀️</span>
+              <span>Morning Routine Settings</span>
             </div>
-
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Reminder</label>
-              <input
-                type="time"
-                value={morningTime}
-                onChange={(e) => setMorningTime(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
-              />
-            </div>
+            <input
+              type="time"
+              value={morningTime}
+              onChange={(e) => setMorningTime(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+            />
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-slate-400 block mb-1">Morning Food Choice</label>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Morning Water Goal</label>
             <input
               type="text"
-              value={morningFood}
-              onChange={(e) => setMorningFood(e.target.value)}
-              placeholder="e.g. 2 eggs, oatmeal, or protein shake"
+              value={morningWaterGoal}
+              onChange={(e) => setMorningWaterGoal(e.target.value)}
+              placeholder="e.g. Drink water toward daily goal (2 glasses)"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Morning Breakfast Suggestion</label>
+            <input
+              type="text"
+              value={morningFoodSuggestion}
+              onChange={(e) => setMorningFoodSuggestion(e.target.value)}
+              placeholder="e.g. Eat breakfast with protein (eggs, curd, dal, beans)"
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
             />
           </div>
         </div>
 
-        {/* SECTION 2: AFTERNOON FOOD & WATER */}
+        {/* SECTION 2: AFTERNOON SUGGESTIONS & TIMING */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs">
-            <span className="text-sm">🌤️</span>
-            <span>Afternoon Routine Settings</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Water Goal</label>
-              <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={afternoonWater}
-                  onChange={(e) => setAfternoonWater(parseInt(e.target.value) || 1)}
-                  className="w-12 bg-transparent text-sm font-bold text-white focus:outline-none"
-                />
-                <span className="text-xs text-slate-400">glasses</span>
-              </div>
+          <div className="flex items-center justify-between text-cyan-400 font-bold text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">🌤️</span>
+              <span>Afternoon Routine Settings</span>
             </div>
-
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Reminder</label>
-              <input
-                type="time"
-                value={afternoonTime}
-                onChange={(e) => setAfternoonTime(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
-              />
-            </div>
+            <input
+              type="time"
+              value={afternoonTime}
+              onChange={(e) => setAfternoonTime(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+            />
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-slate-400 block mb-1">Afternoon Food Choice</label>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Afternoon Water Goal</label>
             <input
               type="text"
-              value={afternoonFood}
-              onChange={(e) => setAfternoonFood(e.target.value)}
-              placeholder="e.g. Lunch (balanced plate)"
+              value={afternoonWaterGoal}
+              onChange={(e) => setAfternoonWaterGoal(e.target.value)}
+              placeholder="e.g. Drink water (2-3 glasses)"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Afternoon Lunch Suggestion</label>
+            <input
+              type="text"
+              value={afternoonFoodSuggestion}
+              onChange={(e) => setAfternoonFoodSuggestion(e.target.value)}
+              placeholder="e.g. Eat lunch"
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
             />
           </div>
         </div>
 
-        {/* SECTION 3: NIGHT FOOD OPTIONS & WATER */}
+        {/* SECTION 3: NIGHT SUGGESTIONS & TIMING */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2 text-indigo-400 font-bold text-xs">
-            <span className="text-sm">🌙</span>
-            <span>Night Routine Settings</span>
+          <div className="flex items-center justify-between text-indigo-400 font-bold text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">🌙</span>
+              <span>Night Routine Settings</span>
+            </div>
+            <input
+              type="time"
+              value={nightTime}
+              onChange={(e) => setNightTime(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Water Goal</label>
-              <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5">
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={nightWater}
-                  onChange={(e) => setNightWater(parseInt(e.target.value) || 1)}
-                  className="w-12 bg-transparent text-sm font-bold text-white focus:outline-none"
-                />
-                <span className="text-xs text-slate-400">glasses</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">Reminder</label>
-              <input
-                type="time"
-                value={nightTime}
-                onChange={(e) => setNightTime(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
-              />
-            </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Night Water (Optional)</label>
+            <input
+              type="text"
+              value={nightWaterGoal}
+              onChange={(e) => setNightWaterGoal(e.target.value)}
+              placeholder="e.g. Drink water if wanted (no pressure before bed)"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
+            />
           </div>
 
-          {/* Night Food Options List */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-slate-400 block">Night Food Choices (Selectable)</label>
-            <div className="space-y-1.5">
-              {nightFoodOptions.map((opt, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
-                >
-                  <span className="text-slate-200 truncate pr-2">{opt}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveNightFood(idx)}
-                    className="text-slate-500 hover:text-rose-400 p-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex space-x-2 pt-1">
-              <input
-                type="text"
-                value={newNightFood}
-                onChange={(e) => setNewNightFood(e.target.value)}
-                placeholder="Add custom option (e.g. Greek yogurt)"
-                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
-              />
-              <button
-                type="button"
-                onClick={handleAddNightFood}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-400 font-bold text-xs flex items-center space-x-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
-            </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-1">Night Dinner Suggestion</label>
+            <input
+              type="text"
+              value={nightFoodSuggestion}
+              onChange={(e) => setNightFoodSuggestion(e.target.value)}
+              placeholder="e.g. Eat dinner"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
+            />
           </div>
         </div>
 
         {/* SECTION 4: SCHEDULED HAIR-WASH HABIT */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-teal-400 font-bold text-xs">
+            <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs">
               <ShowerHead className="w-4 h-4" />
               <span>Hair-Wash Schedule</span>
             </div>
@@ -336,11 +297,11 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
           </div>
 
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Hair wash is added to your <strong>Morning routine</strong> only on your chosen days (default: <strong>Monday & Thursday</strong>). It appears on the Home and Routine tabs and reminds only on those days.
+            Hair wash appears in your <strong>Morning routine</strong> only on your chosen days (default: <strong>Monday & Thursday</strong>). It reminds and tracks only on those days.
           </p>
 
           {washEnabled && (
-            <div className="space-y-2 pt-1">
+            <div className="space-y-3 pt-1">
               <div>
                 <label className="text-[11px] font-medium text-slate-400 block mb-1">Scheduled Wash Days</label>
                 <div className="grid grid-cols-7 gap-1">
@@ -374,6 +335,16 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 block mb-1">After-Wash Care Suggestion</label>
+                <textarea
+                  rows={2}
+                  value={washPostCareTip}
+                  onChange={(e) => setWashPostCareTip(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+                />
+              </div>
+
               <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-[10px] text-slate-400">
                 💡 <em>Note:</em> Monday and Thursday are your chosen schedule, not an inflexible medical rule. Wash frequency should always align with your individual sebum level and comfort.
               </div>
@@ -381,12 +352,62 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
           )}
         </div>
 
-        {/* SECTION 5: NOTIFICATION TOGGLE & BEHAVIOR NOTE */}
+        {/* SECTION 5: DAILY GENTLE DETANGLING & MONTHLY PHOTO */}
+        <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-slate-200 font-bold text-xs">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span>Daily Gentle Detangling Tip</span>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dailyDetangleEnabled}
+                onChange={(e) => setDailyDetangleEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+            </label>
+          </div>
+
+          {dailyDetangleEnabled && (
+            <div>
+              <label className="text-[11px] font-medium text-slate-400 block mb-1">Daily Detangling Guidance</label>
+              <input
+                type="text"
+                value={dailyDetangleTip}
+                onChange={(e) => setDailyDetangleTip(e.target.value)}
+                placeholder="e.g. Detangle gently starting at ends; avoid hairstyles that pull."
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-teal-400"
+              />
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-slate-200 font-bold text-xs">
+              <Camera className="w-4 h-4 text-indigo-400" />
+              <span>Monthly Progress Photo Reminder</span>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={monthlyPhotoPromptEnabled}
+                onChange={(e) => setMonthlyPhotoPromptEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* SECTION 6: QUIET NOTIFICATIONS */}
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-slate-200 font-bold text-xs">
               <Bell className="w-4 h-4 text-teal-400" />
-              <span>Routine & Wash Reminders</span>
+              <span>Quiet Routine Reminders</span>
             </div>
 
             <label className="relative inline-flex items-center cursor-pointer">
@@ -400,8 +421,8 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
             </label>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Reminders are scheduled purely on your phone. Notifications <strong>never tick or complete an item automatically</strong>.
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Reminders are scheduled purely on your phone and designed to be quiet (single alert, no repeated buzzing). Notifications <strong>never tick or complete an item automatically</strong>.
           </p>
         </div>
 
@@ -419,7 +440,7 @@ export const FoodWaterSettingsModal: React.FC<FoodWaterSettingsModalProps> = ({
             onClick={handleSave}
             className="flex-1 py-3 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-teal-500/20 active:scale-95 transition-transform"
           >
-            Save Schedule
+            Save Settings
           </button>
         </div>
       </div>

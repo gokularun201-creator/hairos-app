@@ -70,29 +70,74 @@ export interface ReminderSettings {
 
 // Daily Food & Water and Scheduled Hair Wash Configuration
 export interface DailyFoodWaterConfig {
-  morningWaterGlasses: number;
-  morningFood: string;
-  afternoonWaterGlasses: number;
-  afternoonFood: string;
-  nightWaterGlasses: number;
-  nightFoodOptions: string[];
+  // Morning suggestions & goals
+  morningWaterGoal: string;
+  morningFoodSuggestion: string;
+  
+  // Afternoon suggestions & goals
+  afternoonWaterGoal: string;
+  afternoonFoodSuggestion: string;
+  
+  // Night suggestions & goals
+  nightWaterGoal: string;
+  nightFoodSuggestion: string;
+  
   // Wash schedule
   washEnabled: boolean;
-  washDays: number[]; // 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Default: [1, 4] (Mon & Thu)
-  // Reminder times
+  washDays: number[]; // 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Default: [1, 4]
+  washPostCareTip: string; // Conditioner and gentle drying advice
+  
+  // Daily gentle detangling reminder
+  dailyDetangleEnabled: boolean;
+  dailyDetangleTip: string;
+  
+  // Monthly progress photo
+  monthlyPhotoPromptEnabled: boolean;
+  
+  // Reminder times & quiet alerts
+  remindersEnabled: boolean;
   morningReminderTime: string;
   afternoonReminderTime: string;
   nightReminderTime: string;
   washReminderTime: string;
-  remindersEnabled: boolean;
+
+  // Legacy field compatibility
+  morningWaterGlasses?: number;
+  morningFood?: string;
+  afternoonWaterGlasses?: number;
+  afternoonFood?: string;
+  nightWaterGlasses?: number;
+  nightFoodOptions?: string[];
 }
 
 // Daily Checklist Completion State (resets per date)
 export interface DailyChecklistState {
   date: string; // YYYY-MM-DD
-  morningCompleted: boolean;
-  afternoonCompleted: boolean;
-  nightCompleted: boolean;
+  
+  // Morning individual action checkboxes
+  morningWaterDone: boolean;
+  morningFoodDone: boolean;
+  morningWashDone: boolean;
+  morningDetangleDone?: boolean;
+  morningSkipped: boolean; // "Skip today" without guilt
+  
+  // Afternoon individual action checkboxes
+  afternoonWaterDone: boolean;
+  afternoonFoodDone: boolean;
+  afternoonSkipped: boolean; // "Skip today"
+  
+  // Night individual action checkboxes
+  nightWaterDone: boolean;
+  nightFoodDone: boolean;
+  nightSkipped: boolean; // "Skip today"
+  
+  // Monthly progress photo dismissed month (YYYY-MM)
+  monthlyPhotoDismissedMonth?: string;
+
+  // Legacy compatibility fields
+  morningCompleted?: boolean;
+  afternoonCompleted?: boolean;
+  nightCompleted?: boolean;
   nightFoodSelected?: string;
 }
 

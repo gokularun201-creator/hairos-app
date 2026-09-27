@@ -275,27 +275,63 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
 };
 
 export const DEFAULT_FOOD_WATER_CONFIG: DailyFoodWaterConfig = {
-  morningWaterGlasses: 2,
-  morningFood: '2 eggs',
-  afternoonWaterGlasses: 3,
-  afternoonFood: 'Lunch',
-  nightWaterGlasses: 2,
-  nightFoodOptions: ['2 eggs', '10 almonds', 'A normal serving of fish'],
+  // Morning: Drink water toward daily goal; eat breakfast with protein (eggs, curd, dal, beans)
+  morningWaterGoal: 'Drink water toward daily goal (e.g. 2 glasses)',
+  morningFoodSuggestion: 'Eat breakfast with a protein option (e.g. eggs, curd, dal, or beans)',
+  
+  // Afternoon: Drink water; eat lunch
+  afternoonWaterGoal: 'Drink water (e.g. 2-3 glasses)',
+  afternoonFoodSuggestion: 'Eat lunch',
+  
+  // Night: Drink water if wanted; eat dinner. No pressure to drink set amount before bed
+  nightWaterGoal: 'Drink water if wanted (no set amount required before bed)',
+  nightFoodSuggestion: 'Eat dinner',
+  
+  // Wash schedule: Monday & Thursday mornings default
   washEnabled: true,
-  washDays: [1, 4], // Monday (1) and Thursday (4)
+  washDays: [1, 4], // 1 = Monday, 4 = Thursday
+  washPostCareTip: 'After washing: Apply conditioner to mid-lengths and ends, and pat dry gently with a soft towel (avoid harsh rubbing).',
+  
+  // Daily gentle care reminder
+  dailyDetangleEnabled: true,
+  dailyDetangleTip: 'Detangle gently starting at ends; avoid tight hairstyles that pull.',
+  
+  // Monthly progress photo
+  monthlyPhotoPromptEnabled: true,
+  
+  // Quiet reminders
+  remindersEnabled: false,
   morningReminderTime: '08:00',
   afternoonReminderTime: '13:00',
   nightReminderTime: '20:30',
   washReminderTime: '08:00',
-  remindersEnabled: false
+
+  // Legacy field fallbacks
+  morningWaterGlasses: 2,
+  morningFood: 'Breakfast with protein (eggs, curd, dal, or beans)',
+  afternoonWaterGlasses: 3,
+  afternoonFood: 'Lunch',
+  nightWaterGlasses: 2,
+  nightFoodOptions: ['2 eggs', '10 almonds', 'A normal serving of fish']
 };
 
 export const DEFAULT_DAILY_CHECKLIST_STATE: DailyChecklistState = {
   date: new Date().toISOString().split('T')[0],
+  morningWaterDone: false,
+  morningFoodDone: false,
+  morningWashDone: false,
+  morningDetangleDone: false,
+  morningSkipped: false,
+  afternoonWaterDone: false,
+  afternoonFoodDone: false,
+  afternoonSkipped: false,
+  nightWaterDone: false,
+  nightFoodDone: false,
+  nightSkipped: false,
+  monthlyPhotoDismissedMonth: '',
   morningCompleted: false,
   afternoonCompleted: false,
-  nightCompleted: false,
-  nightFoodSelected: '2 eggs'
+  nightCompleted: false
 };
 
 export const EXAMPLE_PHOTOS: PhotoRecord[] = [

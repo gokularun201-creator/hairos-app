@@ -468,7 +468,28 @@ class HairOSStorage {
 
   // --- DAILY FOOD & WATER CONFIG ---
   public async getDailyFoodWaterConfig(): Promise<DailyFoodWaterConfig> {
-    return this.getKV<DailyFoodWaterConfig>('food_water_config', DEFAULT_FOOD_WATER_CONFIG);
+    const saved = await this.getKV<any>('food_water_config', DEFAULT_FOOD_WATER_CONFIG);
+    if (!saved) return DEFAULT_FOOD_WATER_CONFIG;
+
+    return {
+      morningWaterGoal: saved.morningWaterGoal || (saved.morningWaterGlasses ? `Drink ${saved.morningWaterGlasses} glasses of water toward daily goal` : DEFAULT_FOOD_WATER_CONFIG.morningWaterGoal),
+      morningFoodSuggestion: saved.morningFoodSuggestion || (saved.morningFood ? `Eat breakfast: ${saved.morningFood}` : DEFAULT_FOOD_WATER_CONFIG.morningFoodSuggestion),
+      afternoonWaterGoal: saved.afternoonWaterGoal || (saved.afternoonWaterGlasses ? `Drink ${saved.afternoonWaterGlasses} glasses of water` : DEFAULT_FOOD_WATER_CONFIG.afternoonWaterGoal),
+      afternoonFoodSuggestion: saved.afternoonFoodSuggestion || saved.afternoonFood || DEFAULT_FOOD_WATER_CONFIG.afternoonFoodSuggestion,
+      nightWaterGoal: saved.nightWaterGoal || DEFAULT_FOOD_WATER_CONFIG.nightWaterGoal,
+      nightFoodSuggestion: saved.nightFoodSuggestion || DEFAULT_FOOD_WATER_CONFIG.nightFoodSuggestion,
+      washEnabled: saved.washEnabled !== undefined ? saved.washEnabled : DEFAULT_FOOD_WATER_CONFIG.washEnabled,
+      washDays: Array.isArray(saved.washDays) ? saved.washDays : DEFAULT_FOOD_WATER_CONFIG.washDays,
+      washPostCareTip: saved.washPostCareTip || DEFAULT_FOOD_WATER_CONFIG.washPostCareTip,
+      dailyDetangleEnabled: saved.dailyDetangleEnabled !== undefined ? saved.dailyDetangleEnabled : DEFAULT_FOOD_WATER_CONFIG.dailyDetangleEnabled,
+      dailyDetangleTip: saved.dailyDetangleTip || DEFAULT_FOOD_WATER_CONFIG.dailyDetangleTip,
+      monthlyPhotoPromptEnabled: saved.monthlyPhotoPromptEnabled !== undefined ? saved.monthlyPhotoPromptEnabled : DEFAULT_FOOD_WATER_CONFIG.monthlyPhotoPromptEnabled,
+      remindersEnabled: saved.remindersEnabled !== undefined ? saved.remindersEnabled : DEFAULT_FOOD_WATER_CONFIG.remindersEnabled,
+      morningReminderTime: saved.morningReminderTime || DEFAULT_FOOD_WATER_CONFIG.morningReminderTime,
+      afternoonReminderTime: saved.afternoonReminderTime || DEFAULT_FOOD_WATER_CONFIG.afternoonReminderTime,
+      nightReminderTime: saved.nightReminderTime || DEFAULT_FOOD_WATER_CONFIG.nightReminderTime,
+      washReminderTime: saved.washReminderTime || DEFAULT_FOOD_WATER_CONFIG.washReminderTime
+    };
   }
 
   public async saveDailyFoodWaterConfig(config: DailyFoodWaterConfig): Promise<void> {
@@ -478,7 +499,7 @@ class HairOSStorage {
   // --- DAILY CHECKLIST STATE (with auto-reset on new day) ---
   public async getDailyChecklistState(): Promise<DailyChecklistState> {
     const today = new Date().toISOString().split('T')[0];
-    const saved = await this.getKV<DailyChecklistState>('daily_checklist_state', {
+    const saved = await this.getKV<any>('daily_checklist_state', {
       ...DEFAULT_DAILY_CHECKLIST_STATE,
       date: today
     });
@@ -487,16 +508,38 @@ class HairOSStorage {
       // New day: automatically reset checkboxes for each new day using phone local date
       const resetState: DailyChecklistState = {
         date: today,
-        morningCompleted: false,
-        afternoonCompleted: false,
-        nightCompleted: false,
-        nightFoodSelected: saved?.nightFoodSelected || DEFAULT_DAILY_CHECKLIST_STATE.nightFoodSelected
+        morningWaterDone: false,
+        morningFoodDone: false,
+        morningWashDone: false,
+        morningDetangleDone: false,
+        morningSkipped: false,
+        afternoonWaterDone: false,
+        afternoonFoodDone: false,
+        afternoonSkipped: false,
+        nightWaterDone: false,
+        nightFoodDone: false,
+        nightSkipped: false,
+        monthlyPhotoDismissedMonth: saved?.monthlyPhotoDismissedMonth || ''
       };
       await this.saveDailyChecklistState(resetState);
       return resetState;
     }
 
-    return saved;
+    return {
+      date: today,
+      morningWaterDone: Boolean(saved.morningWaterDone ?? saved.morningCompleted),
+      morningFoodDone: Boolean(saved.morningFoodDone ?? saved.morningCompleted),
+      morningWashDone: Boolean(saved.morningWashDone),
+      morningDetangleDone: Boolean(saved.morningDetangleDone),
+      morningSkipped: Boolean(saved.morningSkipped),
+      afternoonWaterDone: Boolean(saved.afternoonWaterDone ?? saved.afternoonCompleted),
+      afternoonFoodDone: Boolean(saved.afternoonFoodDone ?? saved.afternoonCompleted),
+      afternoonSkipped: Boolean(saved.afternoonSkipped),
+      nightWaterDone: Boolean(saved.nightWaterDone ?? saved.nightCompleted),
+      nightFoodDone: Boolean(saved.nightFoodDone ?? saved.nightCompleted),
+      nightSkipped: Boolean(saved.nightSkipped),
+      monthlyPhotoDismissedMonth: saved.monthlyPhotoDismissedMonth || ''
+    };
   }
 
   public async saveDailyChecklistState(state: DailyChecklistState): Promise<void> {
@@ -515,7 +558,7 @@ class HairOSStorage {
 
     return {
       app: 'HAIR OS',
-      version: '2.2.0',
+      version: '2.3.0',
       exportedAt: new Date().toISOString(),
       profile,
       routines,

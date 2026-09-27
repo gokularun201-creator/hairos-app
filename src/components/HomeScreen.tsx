@@ -24,8 +24,9 @@ interface HomeScreenProps {
   scalpChecks: ScalpCheck[];
   foodWaterConfig: DailyFoodWaterConfig;
   dailyChecklistState: DailyChecklistState;
-  onToggleDailyCard: (card: 'morning' | 'afternoon' | 'night') => void;
-  onSelectNightFood: (food: string) => void;
+  onToggleChecklistItem: (key: keyof DailyChecklistState) => void;
+  onSkipSection: (section: 'morning' | 'afternoon' | 'night') => void;
+  onDismissMonthlyPhoto: () => void;
   onOpenFoodWaterSettings: () => void;
   onToggleTask: (taskId: string) => void;
   onOpenRoutineTab: () => void;
@@ -43,8 +44,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   scalpChecks,
   foodWaterConfig,
   dailyChecklistState,
-  onToggleDailyCard,
-  onSelectNightFood,
+  onToggleChecklistItem,
+  onSkipSection,
+  onDismissMonthlyPhoto,
   onOpenFoodWaterSettings,
   onToggleTask,
   onOpenRoutineTab,
@@ -61,6 +63,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     day: 'numeric'
   });
   const currentDayOfWeek = today.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
   // Check if today is a scheduled hair wash day
   const isWashDay = foodWaterConfig.washEnabled && foodWaterConfig.washDays.includes(currentDayOfWeek);
@@ -70,12 +73,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const latestPhoto = photos.length > 0 ? photos[0] : null;
   const latestScalpCheck = scalpChecks.length > 0 ? scalpChecks[0] : null;
 
-  // Daily cards completed count (0 to 3)
-  const dailyCardsDone = [
-    dailyChecklistState.morningCompleted,
-    dailyChecklistState.afternoonCompleted,
-    dailyChecklistState.nightCompleted
-  ].filter(Boolean).length;
+  // Monthly photo check: show if enabled and not dismissed for this month
+  const showMonthlyPhotoPrompt = 
+    foodWaterConfig.monthlyPhotoPromptEnabled && 
+    dailyChecklistState.monthlyPhotoDismissedMonth !== currentYearMonth;
+
+  // Calculate actions completed
+  const totalActions = 
+    (dailyChecklistState.morningSkipped ? 0 : (2 + (isWashDay ? 1 : 0) + (foodWaterConfig.dailyDetangleEnabled ? 1 : 0))) +
+    (dailyChecklistState.afternoonSkipped ? 0 : 2) +
+    (dailyChecklistState.nightSkipped ? 0 : 2);
+
+  const doneActions = 
+    (dailyChecklistState.morningSkipped ? 0 : (
+      (dailyChecklistState.morningWaterDone ? 1 : 0) +
+      (dailyChecklistState.morningFoodDone ? 1 : 0) +
+      (isWashDay && dailyChecklistState.morningWashDone ? 1 : 0) +
+      (foodWaterConfig.dailyDetangleEnabled && dailyChecklistState.morningDetangleDone ? 1 : 0)
+    )) +
+    (dailyChecklistState.afternoonSkipped ? 0 : (
+      (dailyChecklistState.afternoonWaterDone ? 1 : 0) +
+      (dailyChecklistState.afternoonFoodDone ? 1 : 0)
+    )) +
+    (dailyChecklistState.nightSkipped ? 0 : (
+      (dailyChecklistState.nightWaterDone ? 1 : 0) +
+      (dailyChecklistState.nightFoodDone ? 1 : 0)
+    ));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-24">
@@ -120,22 +143,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION: THREE DAILY ROUTINE CARDS (Morning, Afternoon, Night)             */}
+      {/* SECTION: THREE SIMPLE CHECKLIST SECTIONS (Morning, Afternoon, Night)       */}
       {/* ========================================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Utensils className="w-4 h-4 text-teal-400" />
-            <h3 className="text-sm font-extrabold text-white">Daily Food & Water Checklist</h3>
+            <h3 className="text-sm font-extrabold text-white">Daily Checklist</h3>
           </div>
 
           <div className="flex items-center space-x-2">
             <span className="text-[11px] font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-lg border border-teal-500/20">
-              {dailyCardsDone}/3 Done
+              {doneActions}/{totalActions} Done
             </span>
             <button
               onClick={onOpenFoodWaterSettings}
-              aria-label="Customize Food, Water & Wash Settings"
+              aria-label="Customize Checklist & Reminders"
               className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-teal-300 transition-colors"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -143,211 +166,348 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </div>
 
-        {/* CARD 1: MORNING ROUTINE */}
-        <div className={`p-4 rounded-3xl border transition-all ${
-          dailyChecklistState.morningCompleted 
-            ? 'bg-slate-900/40 border-teal-500/40 shadow-inner' 
-            : 'bg-slate-900 border-slate-800 shadow-xl'
-        }`}>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1.5 flex-1 pr-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">☀️</span>
-                <h4 className="text-sm font-black text-white">Morning Routine</h4>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {foodWaterConfig.morningReminderTime}
+        {/* SECTION 1: MORNING ROUTINE */}
+        <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">☀️</span>
+              <h4 className="text-sm font-black text-white">Morning Routine</h4>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {foodWaterConfig.morningReminderTime}
+              </span>
+              {isWashDay && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  Wash Day
                 </span>
-                {isWashDay && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                    Wash Day
-                  </span>
-                )}
+              )}
+            </div>
+
+            {/* Skip Today Button (Zero Guilt) */}
+            <button
+              onClick={() => onSkipSection('morning')}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${
+                dailyChecklistState.morningSkipped
+                  ? 'bg-slate-800 border-slate-700 text-teal-300'
+                  : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {dailyChecklistState.morningSkipped ? 'Undo Skip' : 'Skip today'}
+            </button>
+          </div>
+
+          {dailyChecklistState.morningSkipped ? (
+            <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Skipped for today · No guilt, routine resumes anytime.</span>
+              <button 
+                onClick={() => onSkipSection('morning')}
+                className="text-teal-400 font-bold ml-2 underline text-xs"
+              >
+                Resume
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 pt-0.5">
+              {/* Action 1: Morning Water Checkbox */}
+              <div 
+                onClick={() => onToggleChecklistItem('morningWaterDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.morningWaterDone
+                    ? 'bg-teal-500/10 border-teal-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.morningWaterDone ? 'bg-teal-500 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.morningWaterDone && <Check className="w-4 h-4 stroke-[3]" />}
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.morningWaterGoal}</span>
+                </div>
+                <Droplets className="w-4 h-4 text-teal-400 flex-shrink-0" />
               </div>
 
-              {/* Items due in Morning Card */}
-              <div className="space-y-1 text-xs text-slate-300 pt-1">
-                <div className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0" />
-                  <span>Drink <strong>{foodWaterConfig.morningWaterGlasses} glasses</strong> of water</span>
+              {/* Action 2: Morning Breakfast Protein Checkbox */}
+              <div 
+                onClick={() => onToggleChecklistItem('morningFoodDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.morningFoodDone
+                    ? 'bg-amber-500/10 border-amber-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.morningFoodDone ? 'bg-amber-400 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.morningFoodDone && <Check className="w-4 h-4 stroke-[3]" />}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                  <span>Eat <strong>{foodWaterConfig.morningFood}</strong></span>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.morningFoodSuggestion}</span>
                 </div>
+                <Utensils className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              </div>
 
-                {/* Scheduled Hair Wash (Mondays and Thursdays only) */}
-                {isWashDay && (
-                  <div className="flex items-center space-x-2 text-cyan-300 font-semibold p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 mt-1">
-                    <ShowerHead className="w-3.5 h-3.5 flex-shrink-0 text-cyan-400" />
-                    <span>Hair wash scheduled for today</span>
+              {/* Action 3: Hair Wash Checkbox (Monday & Thursday Mornings Only) */}
+              {isWashDay && (
+                <div className="space-y-1.5">
+                  <div 
+                    onClick={() => onToggleChecklistItem('morningWashDone')}
+                    className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                      dailyChecklistState.morningWashDone
+                        ? 'bg-cyan-500/15 border-cyan-500/50 text-slate-100'
+                        : 'bg-cyan-950/30 border-cyan-800/50 text-cyan-200 hover:border-cyan-700'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                      dailyChecklistState.morningWashDone ? 'bg-cyan-400 text-slate-950 font-bold' : 'border border-cyan-600/70 bg-slate-900'
+                    }`}>
+                      {dailyChecklistState.morningWashDone && <Check className="w-4 h-4 stroke-[3]" />}
+                    </div>
+                    <div className="flex-1 text-xs">
+                      <span className="font-bold text-cyan-300">Hair wash scheduled for today</span>
+                    </div>
+                    <ShowerHead className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* ONE TICK BOX FOR MORNING CARD */}
-            <button
-              onClick={() => onToggleDailyCard('morning')}
-              aria-label={dailyChecklistState.morningCompleted ? "Mark Morning Incomplete (Undo)" : "Complete Morning Routine"}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 active:scale-95 ${
-                dailyChecklistState.morningCompleted
-                  ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/30'
-                  : 'bg-slate-950 border border-slate-700 text-slate-500 hover:border-slate-500'
-              }`}
-            >
-              {dailyChecklistState.morningCompleted ? (
-                <Check className="w-6 h-6 stroke-[3]" />
-              ) : (
-                <Circle className="w-6 h-6 stroke-[1.5]" />
-              )}
-            </button>
-          </div>
-
-          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Tick box only after completing items above</span>
-            {dailyChecklistState.morningCompleted && (
-              <span className="text-teal-400 font-bold">✓ Morning Complete (Tap to undo)</span>
-            )}
-          </div>
-        </div>
-
-        {/* CARD 2: AFTERNOON ROUTINE */}
-        <div className={`p-4 rounded-3xl border transition-all ${
-          dailyChecklistState.afternoonCompleted 
-            ? 'bg-slate-900/40 border-teal-500/40 shadow-inner' 
-            : 'bg-slate-900 border-slate-800 shadow-xl'
-        }`}>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1.5 flex-1 pr-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">🌤️</span>
-                <h4 className="text-sm font-black text-white">Afternoon Routine</h4>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {foodWaterConfig.afternoonReminderTime}
-                </span>
-              </div>
-
-              {/* Items due in Afternoon Card */}
-              <div className="space-y-1 text-xs text-slate-300 pt-1">
-                <div className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0" />
-                  <span>Drink <strong>{foodWaterConfig.afternoonWaterGlasses} glasses</strong> of water</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                  <span>Eat <strong>{foodWaterConfig.afternoonFood}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            {/* ONE TICK BOX FOR AFTERNOON CARD */}
-            <button
-              onClick={() => onToggleDailyCard('afternoon')}
-              aria-label={dailyChecklistState.afternoonCompleted ? "Mark Afternoon Incomplete (Undo)" : "Complete Afternoon Routine"}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 active:scale-95 ${
-                dailyChecklistState.afternoonCompleted
-                  ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/30'
-                  : 'bg-slate-950 border border-slate-700 text-slate-500 hover:border-slate-500'
-              }`}
-            >
-              {dailyChecklistState.afternoonCompleted ? (
-                <Check className="w-6 h-6 stroke-[3]" />
-              ) : (
-                <Circle className="w-6 h-6 stroke-[1.5]" />
-              )}
-            </button>
-          </div>
-
-          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Tick box only after completing items above</span>
-            {dailyChecklistState.afternoonCompleted && (
-              <span className="text-teal-400 font-bold">✓ Afternoon Complete (Tap to undo)</span>
-            )}
-          </div>
-        </div>
-
-        {/* CARD 3: NIGHT ROUTINE */}
-        <div className={`p-4 rounded-3xl border transition-all ${
-          dailyChecklistState.nightCompleted 
-            ? 'bg-slate-900/40 border-teal-500/40 shadow-inner' 
-            : 'bg-slate-900 border-slate-800 shadow-xl'
-        }`}>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1.5 flex-1 pr-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">🌙</span>
-                <h4 className="text-sm font-black text-white">Night Routine</h4>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {foodWaterConfig.nightReminderTime}
-                </span>
-              </div>
-
-              {/* Items due in Night Card */}
-              <div className="space-y-1 text-xs text-slate-300 pt-1">
-                <div className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0" />
-                  <span>Drink <strong>{foodWaterConfig.nightWaterGlasses} glasses</strong> of water</span>
-                </div>
-                <div className="pt-0.5">
-                  <span className="text-slate-400 block mb-1">Choose one food option for tonight:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {foodWaterConfig.nightFoodOptions.map((opt) => {
-                      const isSelected = (dailyChecklistState.nightFoodSelected || foodWaterConfig.nightFoodOptions[0]) === opt;
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => onSelectNightFood(opt)}
-                          className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
-                            isSelected
-                              ? 'bg-amber-500/20 text-amber-200 border-amber-500/40 font-bold'
-                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          {isSelected && '✓ '}
-                          {opt}
-                        </button>
-                      );
-                    })}
+                  {/* Suggest conditioner and gentle drying after washing */}
+                  <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-800/30 text-[11px] text-cyan-300/90 leading-relaxed flex items-start space-x-2">
+                    <Info className="w-3.5 h-3.5 flex-shrink-0 text-cyan-400 mt-0.5" />
+                    <span>{foodWaterConfig.washPostCareTip}</span>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Action 4: Optional Daily Gentle Detangling */}
+              {foodWaterConfig.dailyDetangleEnabled && (
+                <div 
+                  onClick={() => onToggleChecklistItem('morningDetangleDone')}
+                  className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                    dailyChecklistState.morningDetangleDone
+                      ? 'bg-teal-500/10 border-teal-500/40 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    dailyChecklistState.morningDetangleDone ? 'bg-teal-400 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                  }`}>
+                    {dailyChecklistState.morningDetangleDone && <Check className="w-4 h-4 stroke-[3]" />}
+                  </div>
+                  <div className="flex-1 text-xs">
+                    <span>{foodWaterConfig.dailyDetangleTip}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 2: AFTERNOON ROUTINE */}
+        <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">🌤️</span>
+              <h4 className="text-sm font-black text-white">Afternoon Routine</h4>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {foodWaterConfig.afternoonReminderTime}
+              </span>
             </div>
 
-            {/* ONE TICK BOX FOR NIGHT CARD */}
+            {/* Skip Today Button */}
             <button
-              onClick={() => onToggleDailyCard('night')}
-              aria-label={dailyChecklistState.nightCompleted ? "Mark Night Incomplete (Undo)" : "Complete Night Routine"}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 active:scale-95 ${
-                dailyChecklistState.nightCompleted
-                  ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/30'
-                  : 'bg-slate-950 border border-slate-700 text-slate-500 hover:border-slate-500'
+              onClick={() => onSkipSection('afternoon')}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${
+                dailyChecklistState.afternoonSkipped
+                  ? 'bg-slate-800 border-slate-700 text-teal-300'
+                  : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
-              {dailyChecklistState.nightCompleted ? (
-                <Check className="w-6 h-6 stroke-[3]" />
-              ) : (
-                <Circle className="w-6 h-6 stroke-[1.5]" />
-              )}
+              {dailyChecklistState.afternoonSkipped ? 'Undo Skip' : 'Skip today'}
             </button>
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Tick box only after completing items above</span>
-            {dailyChecklistState.nightCompleted && (
-              <span className="text-teal-400 font-bold">✓ Night Complete (Tap to undo)</span>
-            )}
-          </div>
+          {dailyChecklistState.afternoonSkipped ? (
+            <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Skipped for today · No guilt, routine resumes anytime.</span>
+              <button 
+                onClick={() => onSkipSection('afternoon')}
+                className="text-teal-400 font-bold ml-2 underline text-xs"
+              >
+                Resume
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 pt-0.5">
+              {/* Action 1: Afternoon Water Checkbox */}
+              <div 
+                onClick={() => onToggleChecklistItem('afternoonWaterDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.afternoonWaterDone
+                    ? 'bg-teal-500/10 border-teal-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.afternoonWaterDone ? 'bg-teal-500 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.afternoonWaterDone && <Check className="w-4 h-4 stroke-[3]" />}
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.afternoonWaterGoal}</span>
+                </div>
+                <Droplets className="w-4 h-4 text-teal-400 flex-shrink-0" />
+              </div>
+
+              {/* Action 2: Afternoon Lunch Checkbox */}
+              <div 
+                onClick={() => onToggleChecklistItem('afternoonFoodDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.afternoonFoodDone
+                    ? 'bg-amber-500/10 border-amber-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.afternoonFoodDone ? 'bg-amber-400 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.afternoonFoodDone && <Check className="w-4 h-4 stroke-[3]" />}
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.afternoonFoodSuggestion}</span>
+                </div>
+                <Utensils className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Nutritional & Fluid Disclaimer */}
-        <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400 space-y-0.5">
-          <div className="flex items-center space-x-1.5 font-bold text-slate-300">
-            <Info className="w-3.5 h-3.5 text-teal-400" />
-            <span>Hydration & Nutrition Guidance:</span>
+        {/* SECTION 3: NIGHT ROUTINE */}
+        <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">🌙</span>
+              <h4 className="text-sm font-black text-white">Night Routine</h4>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {foodWaterConfig.nightReminderTime}
+              </span>
+            </div>
+
+            {/* Skip Today Button */}
+            <button
+              onClick={() => onSkipSection('night')}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${
+                dailyChecklistState.nightSkipped
+                  ? 'bg-slate-800 border-slate-700 text-teal-300'
+                  : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {dailyChecklistState.nightSkipped ? 'Undo Skip' : 'Skip today'}
+            </button>
+          </div>
+
+          {dailyChecklistState.nightSkipped ? (
+            <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Skipped for today · Rest well, routine resumes anytime.</span>
+              <button 
+                onClick={() => onSkipSection('night')}
+                className="text-teal-400 font-bold ml-2 underline text-xs"
+              >
+                Resume
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 pt-0.5">
+              {/* Action 1: Night Water if wanted (no set requirement before bed) */}
+              <div 
+                onClick={() => onToggleChecklistItem('nightWaterDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.nightWaterDone
+                    ? 'bg-teal-500/10 border-teal-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.nightWaterDone ? 'bg-teal-500 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.nightWaterDone && <Check className="w-4 h-4 stroke-[3]" />}
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.nightWaterGoal}</span>
+                  <span className="block text-[10px] text-slate-400">No set amount required just before bed</span>
+                </div>
+                <Droplets className="w-4 h-4 text-teal-400 flex-shrink-0" />
+              </div>
+
+              {/* Action 2: Night Dinner Checkbox */}
+              <div 
+                onClick={() => onToggleChecklistItem('nightFoodDone')}
+                className={`p-2.5 rounded-2xl border flex items-center space-x-3 cursor-pointer transition-all ${
+                  dailyChecklistState.nightFoodDone
+                    ? 'bg-amber-500/10 border-amber-500/40 text-slate-100'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  dailyChecklistState.nightFoodDone ? 'bg-amber-400 text-slate-950 font-bold' : 'border border-slate-600 bg-slate-900'
+                }`}>
+                  {dailyChecklistState.nightFoodDone && <Check className="w-4 h-4 stroke-[3]" />}
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold">{foodWaterConfig.nightFoodSuggestion}</span>
+                </div>
+                <Utensils className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Once a Month: Optional Progress Photo Card */}
+        {showMonthlyPhotoPrompt && (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-800/40 shadow-xl space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white">Monthly Progress Photo</h4>
+                  <span className="text-[10px] text-indigo-300 font-medium">Optional monthly milestone</span>
+                </div>
+              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                1x Month
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Capture your hair or hairline under consistent lighting to build an honest photo journal over time. Skip or take when ready.
+            </p>
+
+            <div className="flex space-x-2 pt-1">
+              <button
+                onClick={onOpenCapture}
+                className="flex-1 py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-indigo-500/20 active:scale-95 transition-transform"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Take Photo</span>
+              </button>
+              <button
+                onClick={onDismissMonthlyPhoto}
+                className="py-2 px-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-semibold active:scale-95 transition-transform"
+              >
+                Skip This Month
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Honest Medical & Wellness Disclaimer */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/70 text-[11px] text-slate-400 space-y-1.5">
+          <div className="flex items-center space-x-1.5 text-slate-300 font-bold">
+            <Info className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+            <span>Honest Care & Fluid Guidance</span>
           </div>
           <p className="leading-relaxed">
-            Fluid needs vary by person and activity. Some individuals may have medical fluid restrictions from a physician. Balanced foods and hydration support overall wellbeing; no particular food or fluid guarantees hair regrowth.
+            Fluid needs vary by person and activity level. If you have medical fluid restrictions from a physician, always follow your doctor’s orders. Balanced nutrition, adequate hydration, and washing on fixed days support general wellness and cleanliness, but do not guarantee hair growth.
           </p>
         </div>
       </div>
