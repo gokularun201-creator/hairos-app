@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, ReminderSettings, ExportDataPackage } from './types';
+import { 
+  UserProfile, 
+  RoutineTask, 
+  PhotoRecord, 
+  ScalpCheck, 
+  ReminderSettings, 
+  ExportDataPackage,
+  DailyFoodWaterConfig,
+  DailyChecklistState
+} from './types';
 import { storage } from './services/storage';
-import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, createStarterRoutine } from './data/defaultData';
+import { 
+  DEFAULT_PROFILE, 
+  DEFAULT_ROUTINES, 
+  DEFAULT_REMINDERS, 
+  DEFAULT_FOOD_WATER_CONFIG,
+  DEFAULT_DAILY_CHECKLIST_STATE,
+  createStarterRoutine 
+} from './data/defaultData';
+import { NativeService } from './services/native';
 import { BottomNavBar } from './components/BottomNavBar';
 import { HomeScreen } from './components/HomeScreen';
 import { RoutineScreen } from './components/RoutineScreen';
@@ -11,6 +28,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { PhotoCaptureModal } from './components/PhotoCaptureModal';
 import { ScalpCheckModal } from './components/ScalpCheckModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { FoodWaterSettingsModal } from './components/FoodWaterSettingsModal';
 import { ExportFeedbackModal } from './components/ExportFeedbackModal';
 
 export const App: React.FC = () => {
@@ -20,12 +38,15 @@ export const App: React.FC = () => {
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
   const [scalpChecks, setScalpChecks] = useState<ScalpCheck[]>([]);
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
+  const [foodWaterConfig, setFoodWaterConfig] = useState<DailyFoodWaterConfig>(DEFAULT_FOOD_WATER_CONFIG);
+  const [dailyChecklistState, setDailyChecklistState] = useState<DailyChecklistState>(DEFAULT_DAILY_CHECKLIST_STATE);
 
   // Modals state
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [isScalpCheckOpen, setIsScalpCheckOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isFoodWaterModalOpen, setIsFoodWaterModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -46,12 +67,14 @@ export const App: React.FC = () => {
       try {
         await storage.migrateFromLegacyStorage();
 
-        const [p, r, ph, sc, rem] = await Promise.all([
+        const [p, r, ph, sc, rem, fwc, dcs] = await Promise.all([
           storage.getProfile(),
           storage.getRoutines(),
           storage.getPhotos(),
           storage.getScalpChecks(),
-          storage.getReminders()
+          storage.getReminders(),
+          storage.getDailyFoodWaterConfig(),
+          storage.getDailyChecklistState()
         ]);
 
         setProfile(p);
@@ -59,6 +82,8 @@ export const App: React.FC = () => {
         setPhotos(ph);
         setScalpChecks(sc);
         setReminders(rem);
+        setFoodWaterConfig(fwc);
+        setDailyChecklistState(dcs);
         setIsLoaded(true);
 
         if (!p.onboardingCompleted) {
@@ -112,6 +137,46 @@ export const App: React.FC = () => {
     setRoutines(updated);
     await storage.saveRoutines(updated);
     showToast('Habit removed from routine.');
+  };
+
+  // Toggle Daily Checklist Card (Morning, Afternoon, Night)
+  const handleToggleDailyCard = async (card: 'morning' | 'afternoon' | 'night') => {
+    const updated = { ...dailyChecklistState };
+    if (card === 'morning') {
+      updated.morningCompleted = !updated.morningCompleted;
+    } else if (card === 'afternoon') {
+      updated.afternoonCompleted = !updated.afternoonCompleted;
+    } else if (card === 'night') {
+      updated.nightCompleted = !updated.nightCompleted;
+    }
+    setDailyChecklistState(updated);
+    await storage.saveDailyChecklistState(updated);
+  };
+
+  // Select Night Food Option
+  const handleSelectNightFood = async (food: string) => {
+    const updated = {
+      ...dailyChecklistState,
+      nightFoodSelected: food
+    };
+    setDailyChecklistState(updated);
+    await storage.saveDailyChecklistState(updated);
+  };
+
+  // Save Food, Water & Wash Configuration
+  const handleSaveFoodWaterConfig = async (newConfig: DailyFoodWaterConfig) => {
+    setFoodWaterConfig(newConfig);
+    await storage.saveDailyFoodWaterConfig(newConfig);
+    if (newConfig.remindersEnabled) {
+      await NativeService.scheduleReminders(
+        true,
+        newConfig.morningReminderTime,
+        newConfig.nightReminderTime,
+        newConfig.afternoonReminderTime,
+        newConfig.washDays
+      );
+    }
+    showToast('Daily checklist settings saved!');
   };
 
   // Save Photo
@@ -207,18 +272,22 @@ export const App: React.FC = () => {
       await storage.importData(parsed);
 
       // Refresh state
-      const [p, r, ph, sc, rem] = await Promise.all([
+      const [p, r, ph, sc, rem, fwc, dcs] = await Promise.all([
         storage.getProfile(),
         storage.getRoutines(),
         storage.getPhotos(),
         storage.getScalpChecks(),
-        storage.getReminders()
+        storage.getReminders(),
+        storage.getDailyFoodWaterConfig(),
+        storage.getDailyChecklistState()
       ]);
       setProfile(p);
       setRoutines(r);
       setPhotos(ph);
       setScalpChecks(sc);
       setReminders(rem);
+      setFoodWaterConfig(fwc);
+      setDailyChecklistState(dcs);
       showToast('Data imported successfully!');
     } catch (err: any) {
       showToast(`Import failed: ${err.message}`);
@@ -233,6 +302,8 @@ export const App: React.FC = () => {
     setPhotos([]);
     setScalpChecks([]);
     setReminders(DEFAULT_REMINDERS);
+    setFoodWaterConfig(DEFAULT_FOOD_WATER_CONFIG);
+    setDailyChecklistState(DEFAULT_DAILY_CHECKLIST_STATE);
     setIsOnboardingOpen(true);
     showToast('All local data cleared from this device.');
   };
@@ -253,6 +324,11 @@ export const App: React.FC = () => {
           routines={routines}
           photos={photos}
           scalpChecks={scalpChecks}
+          foodWaterConfig={foodWaterConfig}
+          dailyChecklistState={dailyChecklistState}
+          onToggleDailyCard={handleToggleDailyCard}
+          onSelectNightFood={handleSelectNightFood}
+          onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
           onToggleTask={handleToggleTask}
           onOpenRoutineTab={() => setCurrentTab('routine')}
           onOpenJournalTab={() => setCurrentTab('journal')}
@@ -266,11 +342,13 @@ export const App: React.FC = () => {
       {currentTab === 'routine' && (
         <RoutineScreen
           routines={routines}
+          foodWaterConfig={foodWaterConfig}
           onToggleTask={handleToggleTask}
           onAddTask={handleAddTask}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleDeleteTask}
           onOpenReminders={() => setIsSettingsOpen(true)}
+          onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
         />
       )}
 
@@ -317,8 +395,16 @@ export const App: React.FC = () => {
           onExportData={handleExportData}
           onImportData={handleImportData}
           onClearAllData={handleClearAllData}
+          onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
         />
       )}
+
+      <FoodWaterSettingsModal
+        isOpen={isFoodWaterModalOpen}
+        onClose={() => setIsFoodWaterModalOpen(false)}
+        config={foodWaterConfig}
+        onSaveConfig={handleSaveFoodWaterConfig}
+      />
 
       <ExportFeedbackModal
         isOpen={isExportModalOpen}

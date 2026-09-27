@@ -1,4 +1,4 @@
-import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings, HairGoal, HairType, ScalpType, PreferredTime } from '../types';
+import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings, HairGoal, HairType, ScalpType, PreferredTime, DailyFoodWaterConfig, DailyChecklistState } from '../types';
 
 export const DEFAULT_PROFILE: UserProfile = {
   name: '',
@@ -272,6 +272,30 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
   morningTime: '08:30',
   eveningTime: '20:30',
   showerDayReminder: true
+};
+
+export const DEFAULT_FOOD_WATER_CONFIG: DailyFoodWaterConfig = {
+  morningWaterGlasses: 2,
+  morningFood: '2 eggs',
+  afternoonWaterGlasses: 3,
+  afternoonFood: 'Lunch',
+  nightWaterGlasses: 2,
+  nightFoodOptions: ['2 eggs', '10 almonds', 'A normal serving of fish'],
+  washEnabled: true,
+  washDays: [1, 4], // Monday (1) and Thursday (4)
+  morningReminderTime: '08:00',
+  afternoonReminderTime: '13:00',
+  nightReminderTime: '20:30',
+  washReminderTime: '08:00',
+  remindersEnabled: false
+};
+
+export const DEFAULT_DAILY_CHECKLIST_STATE: DailyChecklistState = {
+  date: new Date().toISOString().split('T')[0],
+  morningCompleted: false,
+  afternoonCompleted: false,
+  nightCompleted: false,
+  nightFoodSelected: '2 eggs'
 };
 
 export const EXAMPLE_PHOTOS: PhotoRecord[] = [

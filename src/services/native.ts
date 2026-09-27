@@ -130,16 +130,19 @@ export class NativeService {
 
   public static async scheduleReminders(
     enabled: boolean,
-    morningTime: string = '08:30',
-    eveningTime: string = '20:30'
+    morningTime: string = '08:00',
+    eveningTime: string = '20:30',
+    afternoonTime: string = '13:00',
+    washReminderTime: string = '08:00',
+    washDays: number[] = [1, 4],
+    washEnabled: boolean = true
   ): Promise<boolean> {
     const cap = (window as any).Capacitor;
     if (cap?.Plugins?.LocalNotifications) {
       try {
-        // Cancel previous reminders first
-        await cap.Plugins.LocalNotifications.cancel({
-          notifications: [{ id: 101 }, { id: 102 }]
-        });
+        // Cancel previous reminders first (IDs 101 to 110)
+        const idsToCancel = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110].map(id => ({ id }));
+        await cap.Plugins.LocalNotifications.cancel({ notifications: idsToCancel });
 
         if (!enabled) {
           return true;
@@ -150,47 +153,83 @@ export class NativeService {
           await cap.Plugins.LocalNotifications.createChannel({
             id: 'hair_os_care_reminders',
             name: 'Care Routine Reminders',
-            description: 'Daily gentle reminders for your hair & scalp care routine',
+            description: 'Daily gentle reminders for hair care, hydration, and nutrition',
             importance: 4,
             visibility: 1,
             vibration: true
           });
         } catch (channelErr) {}
 
-        const [mH, mM] = morningTime.split(':').map(Number);
-        const [eH, eM] = eveningTime.split(':').map(Number);
+        const notifications: any[] = [];
 
+        // 1. Morning Reminder
+        const [mH, mM] = morningTime.split(':').map(Number);
         const morningDate = new Date();
-        morningDate.setHours(mH || 8, mM || 30, 0, 0);
+        morningDate.setHours(mH || 8, mM || 0, 0, 0);
         if (morningDate.getTime() <= Date.now()) {
           morningDate.setDate(morningDate.getDate() + 1);
         }
+        notifications.push({
+          id: 101,
+          title: 'Morning Care & Nutrition ☀️',
+          body: 'Time for your morning water and breakfast habits. Check your daily card!',
+          channelId: 'hair_os_care_reminders',
+          schedule: { at: morningDate, every: 'day' }
+        });
 
+        // 2. Afternoon Reminder
+        const [aH, aM] = afternoonTime.split(':').map(Number);
+        const afternoonDate = new Date();
+        afternoonDate.setHours(aH || 13, aM || 0, 0, 0);
+        if (afternoonDate.getTime() <= Date.now()) {
+          afternoonDate.setDate(afternoonDate.getDate() + 1);
+        }
+        notifications.push({
+          id: 102,
+          title: 'Afternoon Hydration & Lunch 🌤️',
+          body: 'Remember your afternoon water glasses and nourishing lunch.',
+          channelId: 'hair_os_care_reminders',
+          schedule: { at: afternoonDate, every: 'day' }
+        });
+
+        // 3. Night Reminder
+        const [eH, eM] = eveningTime.split(':').map(Number);
         const eveningDate = new Date();
         eveningDate.setHours(eH || 20, eM || 30, 0, 0);
         if (eveningDate.getTime() <= Date.now()) {
           eveningDate.setDate(eveningDate.getDate() + 1);
         }
-
-        await cap.Plugins.LocalNotifications.schedule({
-          notifications: [
-            {
-              id: 101,
-              title: 'Morning Care Routine ☀️',
-              body: 'Take 2 minutes for your gentle morning scalp massage and detangling.',
-              channelId: 'hair_os_care_reminders',
-              schedule: { at: morningDate, every: 'day' }
-            },
-            {
-              id: 102,
-              title: 'Evening Scalp Wind-Down 🌙',
-              body: 'Time for your evening scalp check and gentle relaxing massage before sleep.',
-              channelId: 'hair_os_care_reminders',
-              schedule: { at: eveningDate, every: 'day' }
-            }
-          ]
+        notifications.push({
+          id: 103,
+          title: 'Night Routine & Wind-Down 🌙',
+          body: 'Evening water, selected food option, and gentle scalp relaxation.',
+          channelId: 'hair_os_care_reminders',
+          schedule: { at: eveningDate, every: 'day' }
         });
 
+        // 4. Scheduled Hair Wash Reminders (ONLY on configured wash days, e.g. Mon & Thu)
+        if (washEnabled && washDays.length > 0) {
+          const [wH, wM] = washReminderTime.split(':').map(Number);
+          washDays.forEach((dayOfWeek, idx) => {
+            const washDate = new Date();
+            const currentDay = washDate.getDay();
+            let distance = (dayOfWeek - currentDay + 7) % 7;
+            washDate.setDate(washDate.getDate() + distance);
+            washDate.setHours(wH || 8, wM || 0, 0, 0);
+            if (washDate.getTime() <= Date.now()) {
+              washDate.setDate(washDate.getDate() + 7);
+            }
+            notifications.push({
+              id: 104 + idx,
+              title: 'Scheduled Hair Wash Day 🚿',
+              body: 'Today is your scheduled hair wash morning! Cleanse gently with lukewarm water.',
+              channelId: 'hair_os_care_reminders',
+              schedule: { at: washDate, every: 'week' }
+            });
+          });
+        }
+
+        await cap.Plugins.LocalNotifications.schedule({ notifications });
         return true;
       } catch (e) {
         console.warn('[NativeService] Error scheduling local notifications:', e);

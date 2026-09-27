@@ -1,5 +1,5 @@
-import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage } from '../types';
-import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS } from '../data/defaultData';
+import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage, DailyFoodWaterConfig, DailyChecklistState } from '../types';
+import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, DEFAULT_FOOD_WATER_CONFIG, DEFAULT_DAILY_CHECKLIST_STATE } from '../data/defaultData';
 
 const DB_NAME = 'HairOS_DB_v2';
 const DB_VERSION = 1;
@@ -466,6 +466,43 @@ class HairOSStorage {
     await this.setKV('reminders', settings);
   }
 
+  // --- DAILY FOOD & WATER CONFIG ---
+  public async getDailyFoodWaterConfig(): Promise<DailyFoodWaterConfig> {
+    return this.getKV<DailyFoodWaterConfig>('food_water_config', DEFAULT_FOOD_WATER_CONFIG);
+  }
+
+  public async saveDailyFoodWaterConfig(config: DailyFoodWaterConfig): Promise<void> {
+    await this.setKV('food_water_config', config);
+  }
+
+  // --- DAILY CHECKLIST STATE (with auto-reset on new day) ---
+  public async getDailyChecklistState(): Promise<DailyChecklistState> {
+    const today = new Date().toISOString().split('T')[0];
+    const saved = await this.getKV<DailyChecklistState>('daily_checklist_state', {
+      ...DEFAULT_DAILY_CHECKLIST_STATE,
+      date: today
+    });
+
+    if (!saved || saved.date !== today) {
+      // New day: automatically reset checkboxes for each new day using phone local date
+      const resetState: DailyChecklistState = {
+        date: today,
+        morningCompleted: false,
+        afternoonCompleted: false,
+        nightCompleted: false,
+        nightFoodSelected: saved?.nightFoodSelected || DEFAULT_DAILY_CHECKLIST_STATE.nightFoodSelected
+      };
+      await this.saveDailyChecklistState(resetState);
+      return resetState;
+    }
+
+    return saved;
+  }
+
+  public async saveDailyChecklistState(state: DailyChecklistState): Promise<void> {
+    await this.setKV('daily_checklist_state', state);
+  }
+
   // --- USER DATA EXPORT ---
   public async exportAllData(): Promise<ExportDataPackage> {
     const profile = await this.getProfile();
@@ -473,17 +510,21 @@ class HairOSStorage {
     const photos = await this.getPhotos();
     const scalpChecks = await this.getScalpChecks();
     const reminders = await this.getReminders();
+    const foodWaterConfig = await this.getDailyFoodWaterConfig();
+    const dailyChecklistState = await this.getDailyChecklistState();
 
     return {
       app: 'HAIR OS',
-      version: '2.1.0',
+      version: '2.2.0',
       exportedAt: new Date().toISOString(),
       profile,
       routines,
       photos,
       scalpChecks,
       diary: [],
-      reminders
+      reminders,
+      foodWaterConfig,
+      dailyChecklistState
     };
   }
 
@@ -511,6 +552,12 @@ class HairOSStorage {
     }
     if (importedPackage.reminders) {
       await this.saveReminders(importedPackage.reminders);
+    }
+    if (importedPackage.foodWaterConfig) {
+      await this.saveDailyFoodWaterConfig(importedPackage.foodWaterConfig);
+    }
+    if (importedPackage.dailyChecklistState) {
+      await this.saveDailyChecklistState(importedPackage.dailyChecklistState);
     }
     return true;
   }

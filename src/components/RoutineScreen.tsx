@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RoutineTask, RoutineCategory } from '../types';
+import { RoutineTask, RoutineCategory, DailyFoodWaterConfig } from '../types';
 import { 
   CalendarCheck, 
   CheckCircle2, 
@@ -15,25 +15,31 @@ import {
   Moon, 
   ShowerHead, 
   Clock,
-  Sparkles
+  SlidersHorizontal,
+  Droplets,
+  Utensils
 } from 'lucide-react';
 
 interface RoutineScreenProps {
   routines: RoutineTask[];
+  foodWaterConfig: DailyFoodWaterConfig;
   onToggleTask: (taskId: string) => void;
   onAddTask: (task: RoutineTask) => void;
   onUpdateTask: (task: RoutineTask) => void;
   onDeleteTask: (taskId: string) => void;
   onOpenReminders: () => void;
+  onOpenFoodWaterSettings: () => void;
 }
 
 export const RoutineScreen: React.FC<RoutineScreenProps> = ({
   routines,
+  foodWaterConfig,
   onToggleTask,
   onAddTask,
   onUpdateTask,
   onDeleteTask,
-  onOpenReminders
+  onOpenReminders,
+  onOpenFoodWaterSettings
 }) => {
   const [filter, setFilter] = useState<'all' | RoutineCategory>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -46,6 +52,10 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
   const [timeOfDay, setTimeOfDay] = useState('08:00');
   const [whyItHelps, setWhyItHelps] = useState('');
   const [safetyNotes, setSafetyNotes] = useState('');
+
+  const today = new Date();
+  const currentDayOfWeek = today.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  const isWashDay = foodWaterConfig.washEnabled && foodWaterConfig.washDays.includes(currentDayOfWeek);
 
   const filteredTasks = routines.filter((r) => {
     if (filter === 'all') return true;
@@ -120,6 +130,9 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
     }
   };
 
+  const dayNamesShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const washDayLabels = foodWaterConfig.washDays.map((d) => dayNamesShort[d]).join(', ');
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-24">
       {/* Top Header */}
@@ -134,6 +147,13 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={onOpenFoodWaterSettings}
+            aria-label="Food, Water & Wash Schedule Settings"
+            className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-teal-400 transition-colors active:scale-95"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
           <button
             onClick={onOpenReminders}
             aria-label="Configure Reminders"
@@ -150,6 +170,48 @@ export const RoutineScreen: React.FC<RoutineScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* SCHEDULED HAIR WASH BANNER / CARD */}
+      {foodWaterConfig.washEnabled && (
+        <div className={`p-4 rounded-3xl border transition-all ${
+          isWashDay 
+            ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200 shadow-lg' 
+            : 'bg-slate-900/60 border-slate-800/80 text-slate-400'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className={`w-9 h-9 rounded-2xl flex items-center justify-center ${
+                isWashDay ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+              }`}>
+                <ShowerHead className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h4 className="text-xs font-black text-white">Hair Wash Schedule</h4>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isWashDay ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {isWashDay ? 'Due Today!' : 'Not Due Today'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Scheduled for: <strong>{washDayLabels}</strong> (Morning at {foodWaterConfig.washReminderTime})
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onOpenFoodWaterSettings}
+              className="text-xs font-bold text-teal-400 hover:underline px-2 py-1"
+            >
+              Edit
+            </button>
+          </div>
+          <div className="mt-2 text-[10px] text-slate-400 leading-normal border-t border-slate-800/60 pt-1.5">
+            Treat this schedule as your chosen preference, not an absolute rule. Wash when your scalp needs cleansing.
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none">

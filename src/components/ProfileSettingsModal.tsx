@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   Info,
   Sparkles,
-  Lock
+  Lock,
+  Utensils,
+  ChevronRight
 } from 'lucide-react';
 
 interface ProfileSettingsModalProps {
@@ -25,6 +27,7 @@ interface ProfileSettingsModalProps {
   onExportData: () => void;
   onImportData: (jsonStr: string) => void;
   onClearAllData: () => void;
+  onOpenFoodWaterSettings?: () => void;
 }
 
 export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
@@ -36,7 +39,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onSaveReminders,
   onExportData,
   onImportData,
-  onClearAllData
+  onClearAllData,
+  onOpenFoodWaterSettings
 }) => {
   const [name, setName] = useState(profile.name || '');
   const [scalpType, setScalpType] = useState<ScalpType>(profile.scalpType || 'normal');
@@ -258,6 +262,23 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           >
             Save Preferences
           </button>
+
+          {onOpenFoodWaterSettings && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenFoodWaterSettings();
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-teal-300 flex items-center justify-between active:scale-95 transition-transform"
+            >
+              <div className="flex items-center space-x-2">
+                <Utensils className="w-4 h-4 text-teal-400" />
+                <span>Food, Water & Wash Schedule</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+          )}
         </div>
 
         {/* SECTION 2: GENTLE REMINDERS */}
@@ -397,7 +418,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         )}
 
         <div className="text-center pt-1">
-          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.1.0 (Build 3) · Server-Free Care Journal</span>
+          <span className="text-[10px] text-slate-500 font-mono">HAIR OS v2.2.0 (Build 4) · Server-Free Care Journal</span>
         </div>
       </div>
     </div>

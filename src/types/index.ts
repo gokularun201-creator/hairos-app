@@ -68,6 +68,34 @@ export interface ReminderSettings {
   showerDayReminder: boolean;
 }
 
+// Daily Food & Water and Scheduled Hair Wash Configuration
+export interface DailyFoodWaterConfig {
+  morningWaterGlasses: number;
+  morningFood: string;
+  afternoonWaterGlasses: number;
+  afternoonFood: string;
+  nightWaterGlasses: number;
+  nightFoodOptions: string[];
+  // Wash schedule
+  washEnabled: boolean;
+  washDays: number[]; // 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Default: [1, 4] (Mon & Thu)
+  // Reminder times
+  morningReminderTime: string;
+  afternoonReminderTime: string;
+  nightReminderTime: string;
+  washReminderTime: string;
+  remindersEnabled: boolean;
+}
+
+// Daily Checklist Completion State (resets per date)
+export interface DailyChecklistState {
+  date: string; // YYYY-MM-DD
+  morningCompleted: boolean;
+  afternoonCompleted: boolean;
+  nightCompleted: boolean;
+  nightFoodSelected?: string;
+}
+
 export interface ExportDataPackage {
   app: string;
   version: string;
@@ -78,4 +106,6 @@ export interface ExportDataPackage {
   scalpChecks: ScalpCheck[];
   diary: DiaryEntry[];
   reminders: ReminderSettings;
+  foodWaterConfig?: DailyFoodWaterConfig;
+  dailyChecklistState?: DailyChecklistState;
 }
