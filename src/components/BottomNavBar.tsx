@@ -1,5 +1,5 @@
 import React from 'react';
-import { House, CalendarCheck, FlaskConical, Camera, BookOpen } from 'lucide-react';
+import { Calendar, ScanLine, Sparkles, LineChart, FlaskConical } from 'lucide-react';
 
 interface BottomNavBarProps {
   currentTab: string;
@@ -8,11 +8,11 @@ interface BottomNavBarProps {
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onTabChange }) => {
   const tabs = [
-    { id: 'home', label: 'Home', icon: House },
-    { id: 'routine', label: 'Routine', icon: CalendarCheck },
-    { id: 'lab', label: 'Lab', icon: FlaskConical },
-    { id: 'journal', label: 'Photos', icon: Camera },
-    { id: 'guide', label: 'Guide', icon: BookOpen }
+    { id: 'plan', label: '30-Day Plan', icon: Calendar },
+    { id: 'scan', label: 'AI Scan', icon: ScanLine },
+    { id: 'checker', label: 'Buy?', icon: Sparkles },
+    { id: 'progress', label: 'Progress', icon: LineChart },
+    { id: 'lab', label: 'Lab', icon: FlaskConical }
   ];
 
   return (

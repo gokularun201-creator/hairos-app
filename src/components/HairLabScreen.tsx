@@ -37,13 +37,17 @@ interface HairLabScreenProps {
   shelfProducts: ShelfProduct[];
   onSaveShelfProducts: (products: ShelfProduct[]) => void;
   scalpChecks?: ScalpCheck[];
+  onOpenShowerCompanion?: () => void;
+  onOpenScalpMassage?: () => void;
 }
 
 export const HairLabScreen: React.FC<HairLabScreenProps> = ({ 
   profile, 
   shelfProducts, 
   onSaveShelfProducts,
-  scalpChecks = [] 
+  scalpChecks = [],
+  onOpenShowerCompanion,
+  onOpenScalpMassage
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'decoder' | 'shelf' | 'oils' | 'water' | 'diy' | 'shedding' | 'myths'>('decoder');
 
@@ -204,6 +208,41 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Quick Interactive Tools */}
+      {(onOpenShowerCompanion || onOpenScalpMassage) && (
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {onOpenShowerCompanion && (
+            <button
+              onClick={onOpenShowerCompanion}
+              className="p-3 rounded-2xl bg-gradient-to-br from-cyan-950/50 to-slate-900 border border-cyan-500/30 text-left flex items-center gap-2.5 active:scale-95 transition-all shadow-md group"
+            >
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-xs">
+                🚿
+              </div>
+              <div>
+                <div className="text-xs font-black text-white group-hover:text-cyan-300">Shower Coach</div>
+                <div className="text-[10px] text-slate-400">Step-by-step timer</div>
+              </div>
+            </button>
+          )}
+
+          {onOpenScalpMassage && (
+            <button
+              onClick={onOpenScalpMassage}
+              className="p-3 rounded-2xl bg-gradient-to-br from-teal-950/50 to-slate-900 border border-teal-500/30 text-left flex items-center gap-2.5 active:scale-95 transition-all shadow-md group"
+            >
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold text-xs">
+                💆
+              </div>
+              <div>
+                <div className="text-xs font-black text-white group-hover:text-teal-300">Scalp Massage</div>
+                <div className="text-[10px] text-slate-400">4-min galea relief</div>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Sub Tabs Navigation */}
       <div className="flex gap-1 p-1 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 mb-6 overflow-x-auto scrollbar-none">

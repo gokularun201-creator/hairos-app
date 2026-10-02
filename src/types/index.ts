@@ -152,6 +152,51 @@ export interface ShelfProduct {
   notes?: string;
 }
 
+export interface HairScanResult {
+  frontPhotoUrl: string;
+  topPhotoUrl: string;
+  sidePhotoUrl: string;
+  scannedAt: string;
+  hairType: 'Straight' | 'Wavy' | 'Curly' | 'Coily';
+  texture: 'Fine' | 'Medium' | 'Coarse';
+  scalpCondition: 'Oily' | 'Dry' | 'Balanced' | 'Sensitive';
+  frizzLevel: 'Low' | 'Moderate' | 'High';
+  flakingLevel: 'None' | 'Mild' | 'Noticeable';
+  concerns: string[];
+  overallScore: number;
+}
+
+export interface PlanDayHabit {
+  id: string;
+  title: string;
+  category: 'wash' | 'condition' | 'hydrate' | 'nutrition' | 'night' | 'photo' | 'scalp';
+  completed: boolean;
+}
+
+export interface PlanDay {
+  dayNumber: number; // 1 to 30
+  weekNumber: number; // 1 to 4
+  phaseTitle: string;
+  title: string;
+  focus: string;
+  habits: PlanDayHabit[];
+  foodTip: string;
+  hairTip: string;
+  isMilestonePhotoDay?: boolean;
+}
+
+export interface ProductCheckResult {
+  productName: string;
+  brand: string;
+  category: string;
+  matchPercentage: number;
+  verdict: 'Suitable for your current routine' | 'Highly recommended' | 'Use with caution' | 'Not recommended';
+  verdictColor: 'emerald' | 'teal' | 'amber' | 'rose';
+  goodPoints: string[];
+  thingsToConsider: string[];
+  howToUse: string;
+}
+
 export interface ExportDataPackage {
   app: string;
   version: string;
@@ -165,4 +210,6 @@ export interface ExportDataPackage {
   foodWaterConfig?: DailyFoodWaterConfig;
   dailyChecklistState?: DailyChecklistState;
   shelfProducts?: ShelfProduct[];
+  hairScanResult?: HairScanResult | null;
+  thirtyDayPlan?: PlanDay[];
 }

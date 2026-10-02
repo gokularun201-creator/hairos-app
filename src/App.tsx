@@ -8,7 +8,9 @@ import {
   ExportDataPackage,
   DailyFoodWaterConfig,
   DailyChecklistState,
-  ShelfProduct
+  ShelfProduct,
+  HairScanResult,
+  PlanDay
 } from './types';
 import { storage } from './services/storage';
 import { 
@@ -20,13 +22,15 @@ import {
   DEFAULT_SHELF_PRODUCTS,
   createStarterRoutine 
 } from './data/defaultData';
+import { generateThirtyDayPlan } from './services/planGenerator';
 import { NativeService } from './services/native';
 import { BottomNavBar } from './components/BottomNavBar';
-import { HomeScreen } from './components/HomeScreen';
-import { RoutineScreen } from './components/RoutineScreen';
+import { ThirtyDayPlanScreen } from './components/ThirtyDayPlanScreen';
+import { HairProfileScreen } from './components/HairProfileScreen';
+import { ProductCheckerScreen } from './components/ProductCheckerScreen';
 import { ProgressScreen } from './components/ProgressScreen';
-import { EducationalGuideScreen } from './components/EducationalGuideScreen';
 import { HairLabScreen } from './components/HairLabScreen';
+import { HairScanFlowModal } from './components/HairScanFlowModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { PhotoCaptureModal } from './components/PhotoCaptureModal';
 import { ScalpCheckModal } from './components/ScalpCheckModal';
@@ -37,7 +41,7 @@ import { ShowerCompanionModal } from './components/ShowerCompanionModal';
 import { ScalpMassageTimerModal } from './components/ScalpMassageTimerModal';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'home' | 'routine' | 'lab' | 'journal' | 'guide'>('home');
+  const [currentTab, setCurrentTab] = useState<'plan' | 'scan' | 'checker' | 'progress' | 'lab'>('plan');
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [routines, setRoutines] = useState<RoutineTask[]>(DEFAULT_ROUTINES);
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
@@ -47,7 +51,12 @@ export const App: React.FC = () => {
   const [foodWaterConfig, setFoodWaterConfig] = useState<DailyFoodWaterConfig>(DEFAULT_FOOD_WATER_CONFIG);
   const [dailyChecklistState, setDailyChecklistState] = useState<DailyChecklistState>(DEFAULT_DAILY_CHECKLIST_STATE);
 
+  // ₹10 Core Pillars State: AI Hair Scan & 30-Day Plan
+  const [hairScanResult, setHairScanResult] = useState<HairScanResult | null>(null);
+  const [thirtyDayPlan, setThirtyDayPlan] = useState<PlanDay[]>([]);
+
   // Modals state
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [isScalpCheckOpen, setIsScalpCheckOpen] = useState(false);
@@ -66,7 +75,7 @@ export const App: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   // Initial load and safe migration
@@ -75,7 +84,7 @@ export const App: React.FC = () => {
       try {
         await storage.migrateFromLegacyStorage();
 
-        const [p, r, ph, sc, rem, fwc, dcs, sp] = await Promise.all([
+        const [p, r, ph, sc, rem, fwc, dcs, sp, hsr, tdp] = await Promise.all([
           storage.getProfile(),
           storage.getRoutines(),
           storage.getPhotos(),
@@ -83,7 +92,9 @@ export const App: React.FC = () => {
           storage.getReminders(),
           storage.getDailyFoodWaterConfig(),
           storage.getDailyChecklistState(),
-          storage.getShelfProducts()
+          storage.getShelfProducts(),
+          storage.getHairScanResult(),
+          storage.getThirtyDayPlan()
         ]);
 
         setProfile(p);
@@ -94,6 +105,17 @@ export const App: React.FC = () => {
         setFoodWaterConfig(fwc);
         setDailyChecklistState(dcs);
         setShelfProducts(sp);
+        setHairScanResult(hsr);
+
+        // If 30-day plan already exists, load it; if not, generate from scan if available
+        if (tdp && tdp.length > 0) {
+          setThirtyDayPlan(tdp);
+        } else if (hsr) {
+          const generated = generateThirtyDayPlan(hsr);
+          setThirtyDayPlan(generated);
+          await storage.saveThirtyDayPlan(generated);
+        }
+
         setIsLoaded(true);
 
         if (!p.onboardingCompleted) {
@@ -106,6 +128,77 @@ export const App: React.FC = () => {
 
     loadAppData();
   }, []);
+
+  // AI Hair Scan Completed Handler (Core Loop: Scan -> Get My Hair Plan)
+  const handleScanCompleted = async (newScan: HairScanResult) => {
+    setHairScanResult(newScan);
+    await storage.saveHairScanResult(newScan);
+
+    // Generate personalized 30-day plan based on the scan
+    const newPlan = generateThirtyDayPlan(newScan);
+    setThirtyDayPlan(newPlan);
+    await storage.saveThirtyDayPlan(newPlan);
+
+    // Synchronize UserProfile with diagnostic data
+    const updatedProfile: UserProfile = {
+      ...profile,
+      hairType: (newScan.hairType.toLowerCase() as any),
+      scalpType: (newScan.scalpCondition.toLowerCase() as any),
+      concerns: newScan.concerns,
+      onboardingCompleted: true
+    };
+    setProfile(updatedProfile);
+    await storage.saveProfile(updatedProfile);
+
+    // Save baseline photo to journal if valid data URL
+    if (newScan.frontPhotoUrl && newScan.frontPhotoUrl.startsWith('data:')) {
+      const baselinePhoto: PhotoRecord = {
+        id: `photo_scan_baseline_${Date.now()}`,
+        date: new Date().toISOString().split('T')[0],
+        timestamp: Date.now(),
+        imageUrl: newScan.frontPhotoUrl,
+        zone: 'front',
+        zoneLabel: 'Day 1 Baseline (AI Scan)',
+        notes: `AI Scan Baseline: ${newScan.hairType} hair, ${newScan.scalpCondition} scalp`
+      };
+      await storage.savePhoto(baselinePhoto);
+      const updatedPhotos = await storage.getPhotos();
+      setPhotos(updatedPhotos);
+    }
+
+    setIsScanModalOpen(false);
+    setCurrentTab('plan');
+    showToast('🎉 Hair Profile created & 30-Day Plan unlocked!');
+  };
+
+  // 30-Day Plan Habit Toggle Handler
+  const handleToggleHabit = async (dayNumber: number, habitId: string) => {
+    const updatedPlan = thirtyDayPlan.map((d) => {
+      if (d.dayNumber === dayNumber) {
+        return {
+          ...d,
+          habits: d.habits.map((h) => {
+            if (h.id === habitId) {
+              return { ...h, completed: !h.completed };
+            }
+            return h;
+          })
+        };
+      }
+      return d;
+    });
+
+    setThirtyDayPlan(updatedPlan);
+    await storage.saveThirtyDayPlan(updatedPlan);
+  };
+
+  // Shelf Products Handler
+  const handleSaveProductToShelf = async (product: ShelfProduct) => {
+    const updated = [product, ...shelfProducts.filter((p) => p.id !== product.id)];
+    setShelfProducts(updated);
+    await storage.saveShelfProducts(updated);
+    showToast(`"${product.name}" added to your Hair Shelf!`);
+  };
 
   // Task Toggle
   const handleToggleTask = async (taskId: string) => {
@@ -239,7 +332,7 @@ export const App: React.FC = () => {
     await handleSaveProfile(newProfile);
     setIsOnboardingOpen(false);
 
-    // Only create starter routine if user chose to personalize AND had NO existing routines!
+    // If starter routine requested and empty
     if (generateStarter && routines.length === 0) {
       const starterTasks = createStarterRoutine(
         newProfile.hairGoal,
@@ -249,7 +342,11 @@ export const App: React.FC = () => {
       );
       setRoutines(starterTasks);
       await storage.saveRoutines(starterTasks);
-      showToast('Personalized starter routine created!');
+    }
+
+    // Immediately invite user to take the 3-angle AI hair scan to get their 30-day plan
+    if (!hairScanResult) {
+      setIsScanModalOpen(true);
     } else {
       showToast('Welcome to HAIR OS!');
     }
@@ -297,7 +394,7 @@ export const App: React.FC = () => {
       await storage.importData(parsed);
 
       // Refresh state
-      const [p, r, ph, sc, rem, fwc, dcs, sp] = await Promise.all([
+      const [p, r, ph, sc, rem, fwc, dcs, sp, hsr, tdp] = await Promise.all([
         storage.getProfile(),
         storage.getRoutines(),
         storage.getPhotos(),
@@ -305,7 +402,9 @@ export const App: React.FC = () => {
         storage.getReminders(),
         storage.getDailyFoodWaterConfig(),
         storage.getDailyChecklistState(),
-        storage.getShelfProducts()
+        storage.getShelfProducts(),
+        storage.getHairScanResult(),
+        storage.getThirtyDayPlan()
       ]);
       setProfile(p);
       setRoutines(r);
@@ -315,6 +414,8 @@ export const App: React.FC = () => {
       setFoodWaterConfig(fwc);
       setDailyChecklistState(dcs);
       setShelfProducts(sp);
+      setHairScanResult(hsr);
+      setThirtyDayPlan(tdp || []);
       showToast('Data imported successfully!');
     } catch (err: any) {
       showToast(`Import failed: ${err.message}`);
@@ -338,6 +439,8 @@ export const App: React.FC = () => {
     setReminders(DEFAULT_REMINDERS);
     setFoodWaterConfig(DEFAULT_FOOD_WATER_CONFIG);
     setDailyChecklistState(DEFAULT_DAILY_CHECKLIST_STATE);
+    setHairScanResult(null);
+    setThirtyDayPlan([]);
     setIsOnboardingOpen(true);
     showToast('All local data cleared from this device.');
   };
@@ -351,42 +454,42 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Screens */}
-      {currentTab === 'home' && (
-        <HomeScreen
-          profile={profile}
-          routines={routines}
-          photos={photos}
-          scalpChecks={scalpChecks}
-          foodWaterConfig={foodWaterConfig}
-          dailyChecklistState={dailyChecklistState}
-          onToggleChecklistItem={handleToggleChecklistItem}
-          onSkipSection={handleSkipSection}
-          onDismissMonthlyPhoto={handleDismissMonthlyPhoto}
-          onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
-          onToggleTask={handleToggleTask}
-          onOpenRoutineTab={() => setCurrentTab('routine')}
-          onOpenLabTab={() => setCurrentTab('lab')}
-          onOpenShowerCompanion={() => setIsShowerCompanionOpen(true)}
-          onOpenScalpMassage={() => setIsScalpMassageOpen(true)}
-          onOpenJournalTab={() => setCurrentTab('journal')}
-          onOpenCapture={() => setIsCaptureOpen(true)}
-          onOpenScalpCheck={() => setIsScalpCheckOpen(true)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenGuide={() => setCurrentTab('guide')}
+      {/* 5 CORE PILLAR SCREENS */}
+      {currentTab === 'plan' && (
+        <ThirtyDayPlanScreen
+          plan={thirtyDayPlan}
+          scanResult={hairScanResult}
+          onToggleHabit={handleToggleHabit}
+          onOpenScanModal={() => setIsScanModalOpen(true)}
+          onOpenPhotoCapture={() => setIsCaptureOpen(true)}
+          onOpenProductChecker={() => setCurrentTab('checker')}
         />
       )}
 
-      {currentTab === 'routine' && (
-        <RoutineScreen
-          routines={routines}
-          foodWaterConfig={foodWaterConfig}
-          onToggleTask={handleToggleTask}
-          onAddTask={handleAddTask}
-          onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleDeleteTask}
-          onOpenReminders={() => setIsSettingsOpen(true)}
-          onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
+      {currentTab === 'scan' && (
+        <HairProfileScreen
+          scanResult={hairScanResult}
+          onOpenScanModal={() => setIsScanModalOpen(true)}
+          onNavigateToPlan={() => setCurrentTab('plan')}
+          onNavigateToChecker={() => setCurrentTab('checker')}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
+
+      {currentTab === 'checker' && (
+        <ProductCheckerScreen
+          scanResult={hairScanResult}
+          onSaveToShelf={handleSaveProductToShelf}
+          onOpenScanModal={() => setIsScanModalOpen(true)}
+        />
+      )}
+
+      {currentTab === 'progress' && (
+        <ProgressScreen
+          photos={photos}
+          onOpenCapture={() => setIsCaptureOpen(true)}
+          onDeletePhoto={handleDeletePhoto}
+          onExportData={handleExportData}
         />
       )}
 
@@ -396,24 +499,21 @@ export const App: React.FC = () => {
           shelfProducts={shelfProducts}
           onSaveShelfProducts={handleSaveShelfProducts}
           scalpChecks={scalpChecks}
+          onOpenShowerCompanion={() => setIsShowerCompanionOpen(true)}
+          onOpenScalpMassage={() => setIsScalpMassageOpen(true)}
         />
       )}
-
-      {currentTab === 'journal' && (
-        <ProgressScreen
-          photos={photos}
-          onOpenCapture={() => setIsCaptureOpen(true)}
-          onDeletePhoto={handleDeletePhoto}
-          onExportData={handleExportData}
-        />
-      )}
-
-      {currentTab === 'guide' && <EducationalGuideScreen />}
 
       {/* Bottom Navigation */}
       <BottomNavBar currentTab={currentTab} onTabChange={(tab) => setCurrentTab(tab as any)} />
 
       {/* Modals */}
+      <HairScanFlowModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onScanCompleted={handleScanCompleted}
+      />
+
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onComplete={handleOnboardingComplete}

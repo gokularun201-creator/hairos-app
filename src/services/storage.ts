@@ -1,4 +1,4 @@
-import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage, DailyFoodWaterConfig, DailyChecklistState, ShelfProduct } from '../types';
+import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage, DailyFoodWaterConfig, DailyChecklistState, ShelfProduct, HairScanResult, PlanDay } from '../types';
 import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, DEFAULT_FOOD_WATER_CONFIG, DEFAULT_DAILY_CHECKLIST_STATE, DEFAULT_SHELF_PRODUCTS } from '../data/defaultData';
 
 const DB_NAME = 'HairOS_DB_v2';
@@ -555,6 +555,24 @@ class HairOSStorage {
     await this.setKV('shelf_products', products);
   }
 
+  // --- HAIR SCAN RESULT STORE ---
+  public async getHairScanResult(): Promise<HairScanResult | null> {
+    return await this.getKV<HairScanResult | null>('hair_scan_result', null);
+  }
+
+  public async saveHairScanResult(result: HairScanResult | null): Promise<void> {
+    await this.setKV('hair_scan_result', result);
+  }
+
+  // --- 30-DAY PLAN STORE ---
+  public async getThirtyDayPlan(): Promise<PlanDay[]> {
+    return await this.getKV<PlanDay[]>('thirty_day_plan', []);
+  }
+
+  public async saveThirtyDayPlan(plan: PlanDay[]): Promise<void> {
+    await this.setKV('thirty_day_plan', plan);
+  }
+
   // --- USER DATA EXPORT ---
   public async exportAllData(): Promise<ExportDataPackage> {
     const profile = await this.getProfile();
@@ -565,10 +583,12 @@ class HairOSStorage {
     const foodWaterConfig = await this.getDailyFoodWaterConfig();
     const dailyChecklistState = await this.getDailyChecklistState();
     const shelfProducts = await this.getShelfProducts();
+    const hairScanResult = await this.getHairScanResult();
+    const thirtyDayPlan = await this.getThirtyDayPlan();
 
     return {
       app: 'HAIR OS',
-      version: '2.4.0',
+      version: '2.5.0',
       exportedAt: new Date().toISOString(),
       profile,
       routines,
@@ -578,7 +598,9 @@ class HairOSStorage {
       reminders,
       foodWaterConfig,
       dailyChecklistState,
-      shelfProducts
+      shelfProducts,
+      hairScanResult,
+      thirtyDayPlan
     };
   }
 
@@ -615,6 +637,12 @@ class HairOSStorage {
     }
     if (Array.isArray(importedPackage.shelfProducts)) {
       await this.saveShelfProducts(importedPackage.shelfProducts);
+    }
+    if (importedPackage.hairScanResult !== undefined) {
+      await this.saveHairScanResult(importedPackage.hairScanResult);
+    }
+    if (Array.isArray(importedPackage.thirtyDayPlan)) {
+      await this.saveThirtyDayPlan(importedPackage.thirtyDayPlan);
     }
     return true;
   }
