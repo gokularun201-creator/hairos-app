@@ -107,11 +107,24 @@ export const App: React.FC = () => {
         setShelfProducts(sp);
         setHairScanResult(hsr);
 
-        // If 30-day plan already exists, load it; if not, generate from scan if available
+        // If 30-day plan already exists, load it; if not, generate baseline plan
         if (tdp && tdp.length > 0) {
           setThirtyDayPlan(tdp);
-        } else if (hsr) {
-          const generated = generateThirtyDayPlan(hsr);
+        } else {
+          const baselineScan: HairScanResult = hsr || {
+            frontPhotoUrl: '',
+            topPhotoUrl: '',
+            sidePhotoUrl: '',
+            scannedAt: 'Baseline Regimen',
+            hairType: (p.hairType ? p.hairType.charAt(0).toUpperCase() + p.hairType.slice(1) : 'Wavy') as any,
+            texture: 'Medium',
+            scalpCondition: (p.scalpType ? p.scalpType.charAt(0).toUpperCase() + p.scalpType.slice(1) : 'Oily') as any,
+            frizzLevel: 'Moderate',
+            flakingLevel: 'None',
+            concerns: p.concerns && p.concerns.length > 0 ? p.concerns : ['thinning', 'frizz'],
+            overallScore: 80
+          };
+          const generated = generateThirtyDayPlan(baselineScan);
           setThirtyDayPlan(generated);
           await storage.saveThirtyDayPlan(generated);
         }

@@ -503,10 +503,10 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
             {/* Confirm & Launch 30-Day Plan Button */}
             <button
               onClick={handleConfirmPlan}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-teal-500/30 active:scale-98 transition-transform"
+              className="w-full py-3.5 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-teal-500/30 active:scale-98 transition-all"
             >
-              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-              <span>Activate My 30-Day Plan</span>
+              <CheckCircle2 className="w-5 h-5 stroke-[2.5] text-slate-950" />
+              <span className="text-slate-950">Activate My 30-Day Plan</span>
             </button>
           </div>
         )}

@@ -83,11 +83,11 @@ export const HairProfileScreen: React.FC<HairProfileScreenProps> = ({
 
           <button
             onClick={onOpenScanModal}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition-transform"
+            className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 active:scale-95 transition-all"
           >
-            <ScanLine className="w-4 h-4" />
-            <span>Start 3-Photo AI Scan</span>
-            <ArrowRight className="w-4 h-4" />
+            <ScanLine className="w-4 h-4 text-slate-950" />
+            <span className="text-slate-950">Start 3-Photo AI Scan</span>
+            <ArrowRight className="w-4 h-4 text-slate-950" />
           </button>
         </div>
       ) : (

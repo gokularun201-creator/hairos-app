@@ -119,11 +119,11 @@ export const ThirtyDayPlanScreen: React.FC<ThirtyDayPlanScreenProps> = ({
             </p>
             <button
               onClick={onOpenScanModal}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition-transform"
+              className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 active:scale-95 transition-all"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Scan My Hair Now (30s)</span>
-              <ArrowRight className="w-4 h-4" />
+              <Sparkles className="w-4 h-4 text-slate-950" />
+              <span className="text-slate-950">Scan My Hair Now (30s)</span>
+              <ArrowRight className="w-4 h-4 text-slate-950" />
             </button>
           </div>
         </div>
@@ -165,7 +165,7 @@ export const ThirtyDayPlanScreen: React.FC<ThirtyDayPlanScreenProps> = ({
         </div>
         <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div 
-            className="bg-gradient-to-r from-teal-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
+            className="bg-teal-400 h-2.5 rounded-full transition-all duration-500 shadow-[0_0_8px_#2dd4bf]"
             style={{ width: `${overallPercentage}%` }}
           />
         </div>
