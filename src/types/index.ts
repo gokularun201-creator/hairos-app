@@ -141,6 +141,17 @@ export interface DailyChecklistState {
   nightFoodSelected?: string;
 }
 
+export interface ShelfProduct {
+  id: string;
+  name: string;
+  brand: string;
+  category: 'shampoo' | 'conditioner' | 'oil' | 'serum' | 'mask' | 'leave_in';
+  status: 'in_use' | 'loved' | 'irritating' | 'wishlist';
+  ingredients: string;
+  cleanScore?: number;
+  notes?: string;
+}
+
 export interface ExportDataPackage {
   app: string;
   version: string;
@@ -153,4 +164,5 @@ export interface ExportDataPackage {
   reminders: ReminderSettings;
   foodWaterConfig?: DailyFoodWaterConfig;
   dailyChecklistState?: DailyChecklistState;
+  shelfProducts?: ShelfProduct[];
 }

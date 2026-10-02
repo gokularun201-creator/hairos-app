@@ -7,7 +7,8 @@ import {
   ReminderSettings, 
   ExportDataPackage,
   DailyFoodWaterConfig,
-  DailyChecklistState
+  DailyChecklistState,
+  ShelfProduct
 } from './types';
 import { storage } from './services/storage';
 import { 
@@ -16,6 +17,7 @@ import {
   DEFAULT_REMINDERS, 
   DEFAULT_FOOD_WATER_CONFIG,
   DEFAULT_DAILY_CHECKLIST_STATE,
+  DEFAULT_SHELF_PRODUCTS,
   createStarterRoutine 
 } from './data/defaultData';
 import { NativeService } from './services/native';
@@ -38,6 +40,7 @@ export const App: React.FC = () => {
   const [routines, setRoutines] = useState<RoutineTask[]>(DEFAULT_ROUTINES);
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
   const [scalpChecks, setScalpChecks] = useState<ScalpCheck[]>([]);
+  const [shelfProducts, setShelfProducts] = useState<ShelfProduct[]>(DEFAULT_SHELF_PRODUCTS);
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [foodWaterConfig, setFoodWaterConfig] = useState<DailyFoodWaterConfig>(DEFAULT_FOOD_WATER_CONFIG);
   const [dailyChecklistState, setDailyChecklistState] = useState<DailyChecklistState>(DEFAULT_DAILY_CHECKLIST_STATE);
@@ -68,14 +71,15 @@ export const App: React.FC = () => {
       try {
         await storage.migrateFromLegacyStorage();
 
-        const [p, r, ph, sc, rem, fwc, dcs] = await Promise.all([
+        const [p, r, ph, sc, rem, fwc, dcs, sp] = await Promise.all([
           storage.getProfile(),
           storage.getRoutines(),
           storage.getPhotos(),
           storage.getScalpChecks(),
           storage.getReminders(),
           storage.getDailyFoodWaterConfig(),
-          storage.getDailyChecklistState()
+          storage.getDailyChecklistState(),
+          storage.getShelfProducts()
         ]);
 
         setProfile(p);
@@ -85,6 +89,7 @@ export const App: React.FC = () => {
         setReminders(rem);
         setFoodWaterConfig(fwc);
         setDailyChecklistState(dcs);
+        setShelfProducts(sp);
         setIsLoaded(true);
 
         if (!p.onboardingCompleted) {
@@ -288,14 +293,15 @@ export const App: React.FC = () => {
       await storage.importData(parsed);
 
       // Refresh state
-      const [p, r, ph, sc, rem, fwc, dcs] = await Promise.all([
+      const [p, r, ph, sc, rem, fwc, dcs, sp] = await Promise.all([
         storage.getProfile(),
         storage.getRoutines(),
         storage.getPhotos(),
         storage.getScalpChecks(),
         storage.getReminders(),
         storage.getDailyFoodWaterConfig(),
-        storage.getDailyChecklistState()
+        storage.getDailyChecklistState(),
+        storage.getShelfProducts()
       ]);
       setProfile(p);
       setRoutines(r);
@@ -304,10 +310,17 @@ export const App: React.FC = () => {
       setReminders(rem);
       setFoodWaterConfig(fwc);
       setDailyChecklistState(dcs);
+      setShelfProducts(sp);
       showToast('Data imported successfully!');
     } catch (err: any) {
       showToast(`Import failed: ${err.message}`);
     }
+  };
+
+  // Save Shelf Products
+  const handleSaveShelfProducts = async (products: ShelfProduct[]) => {
+    setShelfProducts(products);
+    await storage.saveShelfProducts(products);
   };
 
   // Clear All Data
@@ -317,6 +330,7 @@ export const App: React.FC = () => {
     setRoutines(DEFAULT_ROUTINES);
     setPhotos([]);
     setScalpChecks([]);
+    setShelfProducts(DEFAULT_SHELF_PRODUCTS);
     setReminders(DEFAULT_REMINDERS);
     setFoodWaterConfig(DEFAULT_FOOD_WATER_CONFIG);
     setDailyChecklistState(DEFAULT_DAILY_CHECKLIST_STATE);
@@ -371,7 +385,12 @@ export const App: React.FC = () => {
       )}
 
       {currentTab === 'lab' && (
-        <HairLabScreen profile={profile} />
+        <HairLabScreen 
+          profile={profile} 
+          shelfProducts={shelfProducts}
+          onSaveShelfProducts={handleSaveShelfProducts}
+          scalpChecks={scalpChecks}
+        />
       )}
 
       {currentTab === 'journal' && (

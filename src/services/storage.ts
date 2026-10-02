@@ -1,5 +1,5 @@
-import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage, DailyFoodWaterConfig, DailyChecklistState } from '../types';
-import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, DEFAULT_FOOD_WATER_CONFIG, DEFAULT_DAILY_CHECKLIST_STATE } from '../data/defaultData';
+import { UserProfile, RoutineTask, PhotoRecord, ScalpCheck, DiaryEntry, ReminderSettings, ExportDataPackage, DailyFoodWaterConfig, DailyChecklistState, ShelfProduct } from '../types';
+import { DEFAULT_PROFILE, DEFAULT_ROUTINES, DEFAULT_REMINDERS, DEFAULT_FOOD_WATER_CONFIG, DEFAULT_DAILY_CHECKLIST_STATE, DEFAULT_SHELF_PRODUCTS } from '../data/defaultData';
 
 const DB_NAME = 'HairOS_DB_v2';
 const DB_VERSION = 1;
@@ -546,6 +546,15 @@ class HairOSStorage {
     await this.setKV('daily_checklist_state', state);
   }
 
+  // --- SHELF PRODUCTS STORE ---
+  public async getShelfProducts(): Promise<ShelfProduct[]> {
+    return await this.getKV<ShelfProduct[]>('shelf_products', DEFAULT_SHELF_PRODUCTS);
+  }
+
+  public async saveShelfProducts(products: ShelfProduct[]): Promise<void> {
+    await this.setKV('shelf_products', products);
+  }
+
   // --- USER DATA EXPORT ---
   public async exportAllData(): Promise<ExportDataPackage> {
     const profile = await this.getProfile();
@@ -555,10 +564,11 @@ class HairOSStorage {
     const reminders = await this.getReminders();
     const foodWaterConfig = await this.getDailyFoodWaterConfig();
     const dailyChecklistState = await this.getDailyChecklistState();
+    const shelfProducts = await this.getShelfProducts();
 
     return {
       app: 'HAIR OS',
-      version: '2.3.0',
+      version: '2.4.0',
       exportedAt: new Date().toISOString(),
       profile,
       routines,
@@ -567,13 +577,14 @@ class HairOSStorage {
       diary: [],
       reminders,
       foodWaterConfig,
-      dailyChecklistState
+      dailyChecklistState,
+      shelfProducts
     };
   }
 
   // --- USER DATA IMPORT ---
   public async importData(importedPackage: ExportDataPackage): Promise<boolean> {
-    if (!importedPackage || importedPackage.app !== 'HAIR OS') {
+    if (!importedPackage || (importedPackage.app !== 'HAIR OS' && importedPackage.app !== 'HAIR OS PRO')) {
       throw new Error('Invalid HAIR OS data file format');
     }
 
@@ -601,6 +612,9 @@ class HairOSStorage {
     }
     if (importedPackage.dailyChecklistState) {
       await this.saveDailyChecklistState(importedPackage.dailyChecklistState);
+    }
+    if (Array.isArray(importedPackage.shelfProducts)) {
+      await this.saveShelfProducts(importedPackage.shelfProducts);
     }
     return true;
   }

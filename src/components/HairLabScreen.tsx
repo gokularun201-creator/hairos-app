@@ -8,13 +8,20 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   Scale, 
-  HelpCircle,
-  Copy,
+  Plus,
+  Trash2,
+  Package,
+  Layers,
+  Award,
   ChevronDown,
   ChevronUp,
-  Sliders,
-  Layers,
-  Award
+  CloudRain,
+  Sun,
+  Wind,
+  FileText,
+  Activity,
+  Heart,
+  Ban
 } from 'lucide-react';
 import { 
   analyzeIngredients, 
@@ -22,14 +29,22 @@ import {
   AnalysisResult 
 } from '../services/ingredientAnalyzer';
 import { HairCalculators, HardWaterResult, DilutionCalculation } from '../services/hairCalculators';
-import { UserProfile } from '../types';
+import { UserProfile, ShelfProduct, ScalpCheck } from '../types';
 
 interface HairLabScreenProps {
   profile: UserProfile;
+  shelfProducts: ShelfProduct[];
+  onSaveShelfProducts: (products: ShelfProduct[]) => void;
+  scalpChecks?: ScalpCheck[];
 }
 
-export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'decoder' | 'water' | 'diy' | 'porosity'>('decoder');
+export const HairLabScreen: React.FC<HairLabScreenProps> = ({ 
+  profile, 
+  shelfProducts, 
+  onSaveShelfProducts,
+  scalpChecks = [] 
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<'decoder' | 'shelf' | 'water' | 'diy' | 'shedding'>('decoder');
 
   // Ingredient Analyzer State
   const [ingredientText, setIngredientText] = useState(PRESET_PRODUCTS[1].ingredients);
@@ -44,6 +59,9 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
     HairCalculators.assessHardWater('municipal')
   );
 
+  // Humidity & Weather Frizz State
+  const [humidityLevel, setHumidityLevel] = useState<'high' | 'moderate' | 'dry'>('high');
+
   // Rosemary Dilution State
   const [carrierMl, setCarrierMl] = useState<number>(30);
   const [dilutionPercent, setDilutionPercent] = useState<number>(2);
@@ -56,6 +74,20 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
 
   // Porosity Quiz State
   const [porosityAnswer, setPorosityAnswer] = useState<'sinks_fast' | 'floats_top' | 'slow_sink' | null>(null);
+
+  // Shedding Bulb Test State
+  const [bulbTestAnswer, setBulbTestAnswer] = useState<'white_bulb' | 'no_bulb' | null>(null);
+
+  // Add Product to Shelf Form State
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductBrand, setNewProductBrand] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState<ShelfProduct['category']>('shampoo');
+  const [newProductIngredients, setNewProductIngredients] = useState('');
+  const [newProductNotes, setNewProductNotes] = useState('');
+
+  // Dermatologist Summary Modal
+  const [showDermSummary, setShowDermSummary] = useState(false);
 
   // Handle ingredient text change
   const handleAnalyze = (text: string) => {
@@ -88,6 +120,54 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
     setDilutionPercent(pct);
     setDilutionResult(HairCalculators.calculateRosemaryDilution(carrierMl, pct));
   };
+
+  // Add Product to Shelf
+  const handleAddProduct = () => {
+    if (!newProductName.trim()) return;
+    const analyzed = analyzeIngredients(newProductIngredients, profile.scalpType);
+    const newProd: ShelfProduct = {
+      id: `prod-${Date.now()}`,
+      name: newProductName.trim(),
+      brand: newProductBrand.trim() || 'General',
+      category: newProductCategory,
+      status: 'in_use',
+      ingredients: newProductIngredients.trim(),
+      cleanScore: analyzed.cleanScore,
+      notes: newProductNotes.trim()
+    };
+    onSaveShelfProducts([...shelfProducts, newProd]);
+    setIsAddingProduct(false);
+    setNewProductName('');
+    setNewProductBrand('');
+    setNewProductIngredients('');
+    setNewProductNotes('');
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    onSaveShelfProducts(shelfProducts.filter(p => p.id !== id));
+  };
+
+  const handleToggleProductStatus = (id: string, status: ShelfProduct['status']) => {
+    onSaveShelfProducts(
+      shelfProducts.map(p => (p.id === id ? { ...p, status } : p))
+    );
+  };
+
+  // Calculate Shelf Regimen Balance
+  const inUseProducts = shelfProducts.filter(p => p.status === 'in_use');
+  const hasShampoo = inUseProducts.some(p => p.category === 'shampoo');
+  const hasConditioner = inUseProducts.some(p => p.category === 'conditioner');
+  const hasOilOrSerum = inUseProducts.some(p => p.category === 'oil' || p.category === 'serum');
+  
+  // Detect potential protein overload across shelf
+  let proteinCount = 0;
+  let siliconeCount = 0;
+  for (const prod of inUseProducts) {
+    if (prod.ingredients) {
+      if (/hydrolyzed|keratin|amino\s+acid|wheat\s+protein/i.test(prod.ingredients)) proteinCount++;
+      if (/dimethicone|amodimethicone/i.test(prod.ingredients)) siliconeCount++;
+    }
+  }
 
   const microneedleProtocol = HairCalculators.getMicroneedleProtocol(needleDepth);
 
@@ -124,51 +204,32 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
         </div>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 mb-6">
-        <button
-          onClick={() => setActiveSubTab('decoder')}
-          className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === 'decoder'
-              ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Decoder
-        </button>
-        <button
-          onClick={() => setActiveSubTab('water')}
-          className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === 'water'
-              ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Water Shield
-        </button>
-        <button
-          onClick={() => setActiveSubTab('diy')}
-          className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === 'diy'
-              ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          DIY Formulator
-        </button>
-        <button
-          onClick={() => setActiveSubTab('porosity')}
-          className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === 'porosity'
-              ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Porosity
-        </button>
+      {/* Sub Tabs Navigation */}
+      <div className="flex gap-1 p-1 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 mb-6 overflow-x-auto scrollbar-none">
+        {[
+          { id: 'decoder', label: 'Decoder' },
+          { id: 'shelf', label: 'My Shelf' },
+          { id: 'water', label: 'Water & Weather' },
+          { id: 'diy', label: 'DIY Formulator' },
+          { id: 'shedding', label: 'Shedding & Scalp' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id as any)}
+            className={`py-2 px-2.5 text-center rounded-xl text-xs font-bold whitespace-nowrap transition-all flex-1 ${
+              activeSubTab === tab.id
+                ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* TAB 1: INGREDIENT DECODER */}
+      {/* ========================================================================= */}
+      {/* SUBTAB 1: INGREDIENT DECODER                                              */}
+      {/* ========================================================================= */}
       {activeSubTab === 'decoder' && (
         <div className="space-y-5 animate-fadeIn">
           {/* Quick Presets */}
@@ -255,7 +316,7 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
               {analysis.sulfatesFound.length > 0 ? (
                 <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  {analysis.sulfatesFound.length} Harsh Detergent(s)
+                  {analysis.sulfatesFound.length} Harsh Cleanser(s)
                 </span>
               ) : (
                 <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
@@ -319,7 +380,7 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
 
             {analysis.matches.length === 0 ? (
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
-                No known cosmetic flag ingredients detected. Always check your scalp's response when introducing new formulations.
+                No known cosmetic flag ingredients detected.
               </div>
             ) : (
               analysis.matches.map((item) => {
@@ -358,20 +419,208 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
         </div>
       )}
 
-      {/* TAB 2: HARD WATER & PH SHIELD */}
+      {/* ========================================================================= */}
+      {/* SUBTAB 2: MY SHELF & REGIMEN BALANCE                                      */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'shelf' && (
+        <div className="space-y-5 animate-fadeIn">
+          {/* Regimen Balance Meter Card */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">
+                  Regimen Health Check
+                </span>
+                <h3 className="text-base font-extrabold text-slate-100">
+                  Active Routine Balance
+                </h3>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                {inUseProducts.length} Products Active
+              </span>
+            </div>
+
+            {/* Checklist of Essential Steps */}
+            <div className="grid grid-cols-3 gap-2 text-[11px]">
+              <div className={`p-2 rounded-xl border text-center ${hasShampoo ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+                <p className="font-bold">Cleanser</p>
+                <p className="text-[9px] mt-0.5">{hasShampoo ? '✓ Present' : 'Missing'}</p>
+              </div>
+              <div className={`p-2 rounded-xl border text-center ${hasConditioner ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+                <p className="font-bold">Conditioner</p>
+                <p className="text-[9px] mt-0.5">{hasConditioner ? '✓ Present' : 'Missing'}</p>
+              </div>
+              <div className={`p-2 rounded-xl border text-center ${hasOilOrSerum ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+                <p className="font-bold">Oil / Serum</p>
+                <p className="text-[9px] mt-0.5">{hasOilOrSerum ? '✓ Present' : 'Optional'}</p>
+              </div>
+            </div>
+
+            {/* Regimen Warnings */}
+            {proteinCount >= 2 && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200">
+                ⚠️ <strong>High Protein Alert:</strong> {proteinCount} of your active products contain hydrolyzed proteins. Watch out for brittle, straw-like hair (protein overload). Balance with moisturizing leave-ins.
+              </div>
+            )}
+            {siliconeCount >= 2 && !inUseProducts.some(p => /sulfate|olefin/i.test(p.ingredients)) && (
+              <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-[11px] text-cyan-200">
+                💧 <strong>Clarifying Recommendation:</strong> You use silicones with gentle cleansers. Use an ACV rinse or clarifying shampoo every 2-3 weeks to avoid dull buildup.
+              </div>
+            )}
+          </div>
+
+          {/* Product Shelf List */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                My Vanity Shelf ({shelfProducts.length})
+              </h4>
+              <button
+                onClick={() => setIsAddingProduct(!isAddingProduct)}
+                className="py-1.5 px-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs flex items-center gap-1 active:scale-95 transition-all shadow-md shadow-teal-500/20"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Add Product</span>
+              </button>
+            </div>
+
+            {/* Add Product Modal/Form */}
+            {isAddingProduct && (
+              <div className="p-4 rounded-3xl bg-slate-900 border border-teal-500/30 space-y-3 animate-fadeIn">
+                <h4 className="text-xs font-extrabold text-teal-300">Add New Hair Product:</h4>
+                <div className="space-y-2 text-xs">
+                  <input
+                    type="text"
+                    value={newProductName}
+                    onChange={(e) => setNewProductName(e.target.value)}
+                    placeholder="Product Name (e.g. Scalp Balancing Shampoo)"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                  />
+                  <input
+                    type="text"
+                    value={newProductBrand}
+                    onChange={(e) => setNewProductBrand(e.target.value)}
+                    placeholder="Brand (e.g. Minimalist / Wow / L'Oréal)"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                  />
+                  <div className="flex gap-2">
+                    {(['shampoo', 'conditioner', 'oil', 'serum', 'mask'] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewProductCategory(cat)}
+                        className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold uppercase border transition-all ${
+                          newProductCategory === cat
+                            ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold'
+                            : 'bg-slate-950 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={newProductIngredients}
+                    onChange={(e) => setNewProductIngredients(e.target.value)}
+                    placeholder="Paste ingredient list (Optional, for instant toxicity score)..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 resize-none font-mono"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={handleAddProduct}
+                    className="flex-1 py-2 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs shadow-md"
+                  >
+                    Save to Shelf
+                  </button>
+                  <button
+                    onClick={() => setIsAddingProduct(false)}
+                    className="py-2 px-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* List of Shelf Products */}
+            {shelfProducts.map((prod) => (
+              <div
+                key={prod.id}
+                className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all space-y-2"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9px] font-extrabold text-teal-400 uppercase tracking-wider">
+                      {prod.category} • {prod.brand}
+                    </span>
+                    <h5 className="text-xs font-bold text-slate-100">{prod.name}</h5>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {prod.cleanScore !== undefined && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950 border border-teal-500/30 text-teal-300">
+                        {prod.cleanScore}/100
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleDeleteProduct(prod.id)}
+                      className="p-1 text-slate-500 hover:text-rose-400"
+                      title="Remove product"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {prod.notes && (
+                  <p className="text-[11px] text-slate-400">{prod.notes}</p>
+                )}
+
+                {/* Status Selector */}
+                <div className="flex gap-1.5 pt-1">
+                  {[
+                    { id: 'in_use', label: 'Active In Routine' },
+                    { id: 'loved', label: 'Loved' },
+                    { id: 'irritating', label: 'Irritated Scalp' }
+                  ].map((st) => (
+                    <button
+                      key={st.id}
+                      onClick={() => handleToggleProductStatus(prod.id, st.id as any)}
+                      className={`py-1 px-2 rounded-lg text-[10px] font-bold border transition-all ${
+                        prod.status === st.id
+                          ? st.id === 'irritating' 
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                          : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUBTAB 3: WATER & WEATHER SHIELD                                          */}
+      {/* ========================================================================= */}
       {activeSubTab === 'water' && (
         <div className="space-y-5 animate-fadeIn">
-          {/* Source Selection */}
+          {/* Water Source Selection */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-300 block">
-              Select Your Daily Shower Water Source:
+              1. Shower Water Source (Hard Water Shield):
             </label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'borewell', label: 'Borewell / Ground', desc: 'High Mineral / Hard' },
                 { id: 'tanker', label: 'Tanker Water', desc: 'Hard Water Supply' },
                 { id: 'municipal', label: 'Municipal / City Tap', desc: 'Moderate Hardness' },
-                { id: 'ro_filtered', label: 'RO / Water Softener', desc: 'Low Minerals / Soft' }
+                { id: 'ro_filtered', label: 'RO / Filtered', desc: 'Low Minerals / Soft' }
               ].map((src) => (
                 <button
                   key={src.id}
@@ -387,31 +636,6 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Risk Card */}
-          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-                  Mineral Deposition Impact
-                </span>
-                <h3 className="text-lg font-black text-slate-100">{waterAssessment.waterSource}</h3>
-              </div>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                waterAssessment.depositRisk === 'Severe Mineral Buildup'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  : waterAssessment.depositRisk === 'Moderate'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              }`}>
-                {waterAssessment.depositRisk}
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-300 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 leading-relaxed">
-              {waterAssessment.breakageImpact}
-            </p>
           </div>
 
           {/* ACV Rinse Recipe */}
@@ -448,17 +672,67 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
             </div>
           </div>
 
-          {/* Citric Acid Alternative */}
-          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
-            <h4 className="font-bold text-slate-200">Alternative: Citric Acid Rinse (Odorless)</h4>
-            <p className="text-slate-400 text-[11px] leading-relaxed">
-              If you dislike vinegar aroma, dissolve <strong className="text-slate-200">{waterAssessment.citricAcidAlternative.citricAcidAmount}</strong> into <strong className="text-slate-200">{waterAssessment.citricAcidAlternative.waterAmount}</strong>. It binds directly with free calcium ions to prevent hair stiffness.
-            </p>
+          {/* Section 2: Humidity & Weather Frizz Shield */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+            <div className="flex items-center gap-2">
+              <CloudRain className="w-5 h-5 text-cyan-400" />
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-100">
+                  2. Humidity & Dew Point Anti-Frizz Rules
+                </h3>
+                <p className="text-[10px] text-slate-400">Select today's ambient humidity</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {[
+                { id: 'high', label: 'Monsoon / High (>70%)', icon: CloudRain },
+                { id: 'moderate', label: 'Optimal (40-70%)', icon: Sun },
+                { id: 'dry', label: 'Arid / Dry (<40%)', icon: Wind }
+              ].map((hum) => (
+                <button
+                  key={hum.id}
+                  onClick={() => setHumidityLevel(hum.id as any)}
+                  className={`flex-1 p-2 rounded-xl text-center border transition-all ${
+                    humidityLevel === hum.id
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <p className="text-[11px] font-bold">{hum.label}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-1.5 leading-relaxed">
+              {humidityLevel === 'high' && (
+                <>
+                  <p>🌧️ <strong>The Humectant Trap:</strong> High humidity pushes excess moisture into the hair cortex, causing hair shafts to balloon and frizz.</p>
+                  <p>• <strong>Rule:</strong> Avoid leave-in conditioners with pure glycerin as the first 3 ingredients.</p>
+                  <p>• <strong>Solution:</strong> Seal with 2-3 drops of lightweight Argan or Jojoba oil over damp hair to create an invisible water-vapor shield.</p>
+                </>
+              )}
+              {humidityLevel === 'moderate' && (
+                <>
+                  <p>☀️ <strong>Golden Dew Point:</strong> Ambient moisture and hair hydration are balanced.</p>
+                  <p>• <strong>Rule:</strong> Standard hydrating routines work optimally. Light leave-in sprays maintain curl clump definition.</p>
+                </>
+              )}
+              {humidityLevel === 'dry' && (
+                <>
+                  <p>🏜️ <strong>Reverse Osmosis Hazard:</strong> In dry winter or air-conditioned rooms, humectants pull water OUT of your hair into the dry air.</p>
+                  <p>• <strong>Rule:</strong> Never apply glycerin to dry hair without an occlusive barrier.</p>
+                  <p>• <strong>Solution:</strong> Layer a rich conditioning cream followed by a sealing oil.</p>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 3: SCIENTIFIC DIY FORMULATOR */}
+      {/* ========================================================================= */}
+      {/* SUBTAB 4: TRICHOLOGY DIY FORMULATOR                                       */}
+      {/* ========================================================================= */}
       {activeSubTab === 'diy' && (
         <div className="space-y-5 animate-fadeIn">
           {/* Rosemary Essential Oil Calculator */}
@@ -609,96 +883,208 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
         </div>
       )}
 
-      {/* TAB 4: POROSITY & SCALP TEST */}
-      {activeSubTab === 'porosity' && (
+      {/* ========================================================================= */}
+      {/* SUBTAB 5: SHEDDING & SCALP LAB                                            */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'shedding' && (
         <div className="space-y-5 animate-fadeIn">
-          {/* Diagnostic Float Test */}
-          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+          {/* Diagnostic 1: Bulb Test (Shedding vs Breakage) */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-teal-400" />
+              <Activity className="w-5 h-5 text-teal-400" />
               <div>
-                <h3 className="text-base font-extrabold text-slate-100">
-                  The Glass Water Porosity Test
+                <h3 className="text-sm font-extrabold text-slate-100">
+                  The White Bulb Test (Shedding vs Breakage)
                 </h3>
-                <p className="text-[11px] text-slate-400">
-                  Take a clean, shed strand of hair (wash-off free) and drop it into a transparent glass of room-temperature water for 4 minutes.
-                </p>
+                <p className="text-[10px] text-slate-400">Examine a fallen hair strand from your brush or pillow</p>
               </div>
             </div>
 
-            {/* Answer Selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300">What happened to the strand?</label>
-              <div className="space-y-2">
-                {[
-                  {
-                    id: 'floats_top',
-                    label: 'Strand Floats at the Top',
-                    porosity: 'Low Porosity Hair',
-                    desc: 'Cuticles are tightly closed like roof shingles. Moisture has a hard time entering, but once in, stays locked.'
-                  },
-                  {
-                    id: 'slow_sink',
-                    label: 'Floats in the Middle',
-                    porosity: 'Medium / Balanced Porosity',
-                    desc: 'Healthy cuticles. Absorbs and retains balanced moisture effortlessly with standard wash routines.'
-                  },
-                  {
-                    id: 'sinks_fast',
-                    label: 'Sinks Straight to the Bottom',
-                    porosity: 'High Porosity Hair',
-                    desc: 'Cuticles have raised or damaged gaps (from heat, bleaching, or genetics). Absorbs water instantly but dries out immediately.'
-                  }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setPorosityAnswer(opt.id as any)}
-                    className={`w-full p-3 rounded-2xl text-left border transition-all ${
-                      porosityAnswer === opt.id
-                        ? 'bg-teal-500/15 border-teal-500 text-teal-300 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                    }`}
-                  >
-                    <p className="text-xs font-bold">{opt.label}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setBulbTestAnswer('white_bulb')}
+                className={`p-3 rounded-2xl text-left border transition-all ${
+                  bulbTestAnswer === 'white_bulb'
+                    ? 'bg-teal-500/15 border-teal-500 text-teal-300'
+                    : 'bg-slate-950 border-slate-800 text-slate-300'
+                }`}
+              >
+                <p className="text-xs font-bold">White Tiny Bulb at Root</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Visible tiny white ball at one end</p>
+              </button>
+
+              <button
+                onClick={() => setBulbTestAnswer('no_bulb')}
+                className={`p-3 rounded-2xl text-left border transition-all ${
+                  bulbTestAnswer === 'no_bulb'
+                    ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                    : 'bg-slate-950 border-slate-800 text-slate-300'
+                }`}
+              >
+                <p className="text-xs font-bold">No Bulb / Blunt Ends</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Snaps cleanly with frayed tips</p>
+              </button>
             </div>
 
-            {/* Actionable Rules based on answer */}
-            {porosityAnswer && (
-              <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/30 space-y-2 animate-fadeIn">
-                <h4 className="text-xs font-extrabold text-teal-300 uppercase tracking-wider">
-                  Recommended Regimen Rules:
-                </h4>
-                {porosityAnswer === 'floats_top' && (
-                  <div className="text-[11px] text-slate-200 space-y-1.5 leading-relaxed">
-                    <p>• <strong>Apply Warmth:</strong> Use warm water or a warm towel when deep conditioning to gently open tight cuticles.</p>
-                    <p>• <strong>Avoid Heavy Butters:</strong> Heavy shea butter and castor oil will sit on top of strands and look greasy. Use lightweight Argan, Jojoba, or Grapeseed oil.</p>
-                    <p>• <strong>Avoid Protein Overload:</strong> Limit hydrolyzed keratin products to once every 6 weeks.</p>
-                  </div>
-                )}
-                {porosityAnswer === 'slow_sink' && (
-                  <div className="text-[11px] text-slate-200 space-y-1.5 leading-relaxed">
-                    <p>• <strong>Balanced Routine:</strong> Alternate between lightweight moisturizing conditioners and occasional protein masks.</p>
-                    <p>• <strong>Protection:</strong> Use silk/satin pillowcases to maintain the intact cuticle layer.</p>
-                  </div>
-                )}
-                {porosityAnswer === 'sinks_fast' && (
-                  <div className="text-[11px] text-slate-200 space-y-1.5 leading-relaxed">
-                    <p>• <strong>Frequent Protein:</strong> Incorporate hydrolyzed proteins or amino acids bi-weekly to temporarily patch cuticle gaps.</p>
-                    <p>• <strong>Seal with Heavier Oils:</strong> Use the L.O.C. method (Liquid - Oil - Cream) to lock water inside the strand.</p>
-                    <p>• <strong>Acidic Final Rinse:</strong> Cold water or an ACV rinse helps smooth and clamp down raised cuticles.</p>
-                  </div>
+            {bulbTestAnswer && (
+              <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-xs text-slate-200 space-y-1.5 leading-relaxed animate-fadeIn">
+                {bulbTestAnswer === 'white_bulb' ? (
+                  <>
+                    <span className="font-extrabold text-teal-300 block">Verdict: Natural Follicle Shedding (Telogen Phase)</span>
+                    <p>The hair reached the end of its 3-5 year growth cycle. 50-100 shed hairs per day is standard biology. A new anagen hair is already starting below the surface.</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-extrabold text-amber-300 block">Verdict: Mechanical Shaft Breakage</span>
+                    <p>This is NOT root hair loss! Your strand broke midway due to friction, rough towel drying, heat, or comb snagging. Focus on leave-in conditioners, silk sleep caps, and wide-tooth combs.</p>
+                  </>
                 )}
               </div>
             )}
           </div>
+
+          {/* Diagnostic 2: 90-Day Shock Timeline (Telogen Effluvium) */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+            <h4 className="text-xs font-extrabold text-slate-100">
+              The 90-Day Stress Shock Tracker (Telogen Effluvium)
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Hair follicles take <strong>2 to 3 months</strong> to enter the shedding phase after a metabolic shock. Did you experience any of these 60–90 days ago?
+            </p>
+
+            <div className="space-y-1.5 text-xs text-slate-300">
+              {[
+                'High fever or viral infection (Dengue, Covid, Malaria)',
+                'Sudden crash diet, rapid weight loss, or low protein',
+                'Major life stress, grief, or sleep deprivation',
+                'Stopping/starting hormonal medication or childbirth'
+              ].map((item, idx) => (
+                <div key={idx} className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />
+                  <span className="text-[11px]">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+              💡 <em>Good News:</em> Acute Telogen Effluvium is temporary and self-resolving. Once the trigger passes, follicles spontaneously re-enter the anagen growth cycle within 4–6 months.
+            </p>
+          </div>
+
+          {/* Diagnostic 3: Water Float Porosity Test */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-teal-400" />
+              <h3 className="text-xs font-extrabold text-slate-100">
+                Water Float Porosity Test
+              </h3>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Drop a clean shed strand in a glass of water for 4 minutes:
+            </p>
+
+            <div className="flex gap-2">
+              {[
+                { id: 'floats_top', label: 'Floats on Top (Low)' },
+                { id: 'slow_sink', label: 'Middle (Medium)' },
+                { id: 'sinks_fast', label: 'Sinks (High)' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setPorosityAnswer(opt.id as any)}
+                  className={`flex-1 p-2 rounded-xl text-center border text-[10px] font-bold transition-all ${
+                    porosityAnswer === opt.id
+                      ? 'bg-teal-500/20 border-teal-500 text-teal-300'
+                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {porosityAnswer && (
+              <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[11px] text-slate-200 leading-relaxed">
+                {porosityAnswer === 'floats_top' && 'Low Porosity: Avoid heavy shea butter; use warm water when deep conditioning to open cuticles.'}
+                {porosityAnswer === 'slow_sink' && 'Medium Porosity: Balanced cuticles. Maintain balanced moisture and occasional light protein.'}
+                {porosityAnswer === 'sinks_fast' && 'High Porosity: Raised cuticles. Needs bi-weekly hydrolyzed protein and rich sealing oils.'}
+              </div>
+            )}
+          </div>
+
+          {/* Dermatologist Clinic Summary Button */}
+          <button
+            onClick={() => setShowDermSummary(true)}
+            className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-98 transition-all"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Generate Doctor / Clinic Summary</span>
+          </button>
         </div>
       )}
 
-      {/* Fair Price & Privacy Promise Card */}
+      {/* ========================================================================= */}
+      {/* DERMATOLOGIST SUMMARY MODAL                                               */}
+      {/* ========================================================================= */}
+      {showDermSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-black tracking-widest text-teal-400">
+                  Clinical Consultation Prep
+                </span>
+                <h3 className="text-base font-black text-slate-100">Dermatologist Summary Sheet</h3>
+              </div>
+              <button
+                onClick={() => setShowDermSummary(false)}
+                className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Patient Profile:</span>
+                <p className="font-bold text-slate-100 mt-0.5">Scalp: {profile.scalpType} | Texture: {profile.hairType || 'Wavy'} | Goal: {profile.hairGoal || 'Maintenance'}</p>
+                <p className="text-[11px] text-slate-400">Wash Frequency: {profile.washFrequency}</p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Current Topicals on Shelf:</span>
+                {shelfProducts.length === 0 ? (
+                  <p className="text-slate-500 mt-0.5">No products recorded.</p>
+                ) : (
+                  <div className="mt-1 space-y-1 text-[11px] text-slate-200">
+                    {shelfProducts.map((p) => (
+                      <p key={p.id}>• <strong>{p.name}</strong> ({p.category}) — {p.status === 'irritating' ? '⚠️ Caused irritation' : 'Currently in use'}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Environmental & Water Data:</span>
+                <p className="text-slate-200 mt-0.5">Water Source: {waterAssessment.waterSource} ({waterAssessment.depositRisk})</p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-[11px] text-teal-200 leading-relaxed">
+                💡 <em>Tip for Appointment:</em> Show this sheet to your doctor so they immediately know your wash schedule, environmental hardness, and topical contact history without 15 minutes of questioning.
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowDermSummary(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
+            >
+              Done Reviewing
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Fair Price & Privacy Guarantee Card */}
       <div className="mt-8 p-4 rounded-3xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-[10px] font-bold uppercase tracking-wider">
           <Award className="w-3.5 h-3.5 text-teal-400" />
@@ -708,7 +1094,7 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({ profile }) => {
           Lifetime Ownership • Zero Ads • Complete Offline Privacy
         </p>
         <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
-          Unlike apps that charge ₹499/month and sell personal data, HAIR OS runs 100% on your device hardware with zero recurring fees.
+          Unlike apps that charge ₹499/month and harvest personal data, HAIR OS runs 100% on your device with zero recurring fees.
         </p>
       </div>
     </div>

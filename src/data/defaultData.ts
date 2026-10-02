@@ -1,4 +1,4 @@
-import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings, HairGoal, HairType, ScalpType, PreferredTime, DailyFoodWaterConfig, DailyChecklistState } from '../types';
+import { UserProfile, RoutineTask, PhotoRecord, ReminderSettings, HairGoal, HairType, ScalpType, PreferredTime, DailyFoodWaterConfig, DailyChecklistState, ShelfProduct } from '../types';
 
 export const DEFAULT_PROFILE: UserProfile = {
   name: '',
@@ -485,3 +485,27 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     reviewerTitle: 'Clinical Dermatology Red Flags & Diagnostic Thresholds'
   }
 ];
+
+export const DEFAULT_SHELF_PRODUCTS: ShelfProduct[] = [
+  {
+    id: 'shelf-1',
+    name: 'Gentle Rosemary Scalp Cleanser',
+    brand: 'Botanical Labs',
+    category: 'shampoo',
+    status: 'in_use',
+    ingredients: 'Aqua, Cocamidopropyl Betaine, Decyl Glucoside, Glycerin, Rosmarinus Officinalis Leaf Oil, Panthenol',
+    cleanScore: 95,
+    notes: 'Gentle sulfate-free wash for regular wash days.'
+  },
+  {
+    id: 'shelf-2',
+    name: 'Moisture Silk Hair Conditioner',
+    brand: 'Strand Care',
+    category: 'conditioner',
+    status: 'in_use',
+    ingredients: 'Water, Cetearyl Alcohol, Stearyl Alcohol, Behentrimonium Chloride, Argania Spinosa Kernel Oil, Glycerin',
+    cleanScore: 88,
+    notes: 'Apply only to mid-lengths and ends; avoid scalp pores.'
+  }
+];
+
