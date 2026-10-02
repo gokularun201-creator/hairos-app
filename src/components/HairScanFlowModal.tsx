@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera, 
   Sparkles, 
@@ -12,7 +12,10 @@ import {
   Activity, 
   Layers, 
   HelpCircle,
-  Upload
+  Upload,
+  Cpu,
+  Zap,
+  Target
 } from 'lucide-react';
 import { HairScanResult } from '../types';
 
@@ -44,10 +47,71 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
   // Generated Scan Result
   const [scanResult, setScanResult] = useState<HairScanResult | null>(null);
 
+  // Holographic Scanning Telemetry State
+  const [scanProgress, setScanProgress] = useState(0);
+  const [telemetryIndex, setTelemetryIndex] = useState(0);
+
+  const TELEMETRY_PHASES = [
+    'Calibrating trichological optical sensor array...',
+    'Mapping front hairline & follicular unit density: 188 FU/cm²...',
+    'Analyzing scalp lipid barrier & sebum accumulation...',
+    'Computing cuticle porosity & protein-moisture tensile ratio...',
+    'Synthesizing personalized 30-day habit & nutrition plan...'
+  ];
+
   // File input refs for uploading or snapping photos
   const frontInputRef = useRef<HTMLInputElement>(null);
   const topInputRef = useRef<HTMLInputElement>(null);
   const sideInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (currentStep === 5) {
+      setScanProgress(0);
+      setTelemetryIndex(0);
+
+      const interval = setInterval(() => {
+        setScanProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          const next = prev + 3;
+          if (next >= 20 && next < 45) setTelemetryIndex(1);
+          else if (next >= 45 && next < 65) setTelemetryIndex(2);
+          else if (next >= 65 && next < 85) setTelemetryIndex(3);
+          else if (next >= 85) setTelemetryIndex(4);
+          return next;
+        });
+      }, 70);
+
+      const timeout = setTimeout(() => {
+        const hasFrizz = selectedConcerns.includes('frizz') || selectedHairType === 'Curly' || selectedHairType === 'Wavy';
+        const hasFlaking = selectedConcerns.includes('flakes') || selectedScalp === 'Dry' || selectedScalp === 'Oily';
+
+        const result: HairScanResult = {
+          frontPhotoUrl: frontPhoto || 'placeholder_front',
+          topPhotoUrl: topPhoto || 'placeholder_top',
+          sidePhotoUrl: sidePhoto || 'placeholder_side',
+          scannedAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+          hairType: selectedHairType,
+          texture: selectedTexture,
+          scalpCondition: selectedScalp,
+          frizzLevel: hasFrizz ? 'Moderate' : 'Low',
+          flakingLevel: hasFlaking ? 'Mild' : 'None',
+          concerns: selectedConcerns,
+          overallScore: selectedTexture === 'Fine' && selectedScalp === 'Oily' ? 76 : 82
+        };
+
+        setScanResult(result);
+        setCurrentStep(6);
+      }, 3000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [currentStep]);
 
   if (!isOpen) return null;
 
@@ -70,31 +134,8 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
     }
   };
 
-  // Trigger scanning sequence
   const startAnalysis = () => {
     setCurrentStep(5);
-    setTimeout(() => {
-      // Calculate realistic scores based on user photos & diagnostic
-      const hasFrizz = selectedConcerns.includes('frizz') || selectedHairType === 'Curly' || selectedHairType === 'Wavy';
-      const hasFlaking = selectedConcerns.includes('flakes') || selectedScalp === 'Dry' || selectedScalp === 'Oily';
-
-      const result: HairScanResult = {
-        frontPhotoUrl: frontPhoto || 'placeholder_front',
-        topPhotoUrl: topPhoto || 'placeholder_top',
-        sidePhotoUrl: sidePhoto || 'placeholder_side',
-        scannedAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-        hairType: selectedHairType,
-        texture: selectedTexture,
-        scalpCondition: selectedScalp,
-        frizzLevel: hasFrizz ? 'Moderate' : 'Low',
-        flakingLevel: hasFlaking ? 'Mild' : 'None',
-        concerns: selectedConcerns,
-        overallScore: selectedTexture === 'Fine' && selectedScalp === 'Oily' ? 76 : 82
-      };
-
-      setScanResult(result);
-      setCurrentStep(6);
-    }, 2800);
   };
 
   const handleConfirmPlan = () => {
@@ -115,35 +156,37 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-teal-400 block">
-                {currentStep === 6 ? 'Scan Complete' : `Step ${currentStep} of 5`}
+                {currentStep === 6 ? 'Scan Complete' : currentStep === 5 ? 'AI Processing' : `Step ${currentStep} of 5`}
               </span>
               <h3 className="text-base font-black text-slate-100">
-                {currentStep === 6 ? 'Your Hair Profile' : 'AI Hair & Scalp Scan'}
+                AI Hair Diagnostic Scan
               </h3>
             </div>
           </div>
-
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
+            className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* STEP 0: INTRO */}
+        {/* STEP 0: INTRO SCREEN */}
         {currentStep === 0 && (
           <div className="my-6 space-y-5 text-center">
-            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shadow-xl shadow-teal-500/10">
-              <Sparkles className="w-10 h-10" />
+            <div className="relative w-24 h-24 mx-auto">
+              <div className="absolute inset-0 rounded-3xl bg-teal-500/20 animate-pulse blur-xl" />
+              <div className="relative w-full h-full rounded-3xl bg-slate-950 border border-teal-500/50 flex items-center justify-center text-teal-300">
+                <Camera className="w-12 h-12" />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white tracking-tight">
-                Scan → Get Your 30-Day Plan
+              <h2 className="text-xl font-black text-white">
+                3-Angle AI Hair Diagnostic
               </h2>
               <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
-                Take 3 quick photos (Front, Top, Side) and answer 4 fast questions. We'll analyze your hair fiber characteristics and build your customized daily routine.
+                Snap 3 quick photos to evaluate hair type, texture, scalp oiliness, and frizz indicators. Hair OS will craft your personalized 30-day regimen.
               </p>
             </div>
 
@@ -154,7 +197,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Instant Hair Type, Texture & Scalp Oiliness evaluation.</span>
+                <span>Holographic alignment guides for accurate photos.</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
@@ -172,27 +215,43 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
           </div>
         )}
 
-        {/* STEP 1: FRONT PHOTO */}
+        {/* STEP 1: FRONT PHOTO WITH SILHOUETTE GUIDE */}
         {currentStep === 1 && (
           <div className="my-4 space-y-4 text-center">
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">Angle 1 of 3</span>
               <h3 className="text-lg font-black text-white">Front Hairline & Forehead</h3>
-              <p className="text-xs text-slate-400">Captures temple alignment, hairline density, and front texture.</p>
+              <p className="text-xs text-slate-400">Align your frontal hairline and forehead within the guidance reticle.</p>
             </div>
 
             <div 
               onClick={() => frontInputRef.current?.click()}
-              className="w-56 h-56 mx-auto rounded-3xl border-2 border-dashed border-teal-500/50 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group"
+              className="w-60 h-60 mx-auto rounded-3xl border-2 border-dashed border-teal-500/60 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group shadow-xl"
             >
               {frontPhoto ? (
-                <img src={frontPhoto} alt="Front photo" className="w-full h-full object-cover" />
+                <>
+                  <img src={frontPhoto} alt="Front photo" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="px-3 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-black text-xs">Tap to Retake</span>
+                  </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300">
-                  <Camera className="w-10 h-10 text-teal-400" />
-                  <span className="text-xs font-bold">Tap to snap or upload</span>
-                  <span className="text-[10px] text-slate-500">Center forehead in frame</span>
-                </div>
+                <>
+                  {/* Holographic Silhouette Overlay for Front Hairline */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none p-4 opacity-40" viewBox="0 0 200 200">
+                    <ellipse cx="100" cy="115" rx="65" ry="75" fill="none" stroke="#2dd4bf" strokeWidth="1.5" strokeDasharray="4 4" />
+                    <path d="M 50 85 Q 100 55 150 85" fill="none" stroke="#2dd4bf" strokeWidth="2.5" />
+                    <line x1="100" y1="20" x2="100" y2="40" stroke="#2dd4bf" strokeWidth="1.5" />
+                    <line x1="20" y1="100" x2="40" y2="100" stroke="#2dd4bf" strokeWidth="1.5" />
+                    <line x1="160" y1="100" x2="180" y2="100" stroke="#2dd4bf" strokeWidth="1.5" />
+                    <circle cx="100" cy="70" r="3" fill="#2dd4bf" />
+                  </svg>
+                  <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300 z-10">
+                    <Camera className="w-10 h-10 text-teal-400" />
+                    <span className="text-xs font-black text-white">Snap Front Angle</span>
+                    <span className="text-[10px] text-teal-400 font-semibold">Align hairline along curve</span>
+                  </div>
+                </>
               )}
               <input 
                 ref={frontInputRef}
@@ -215,33 +274,48 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                 onClick={() => setCurrentStep(2)}
                 className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-md shadow-teal-500/20 active:scale-98 transition-transform"
               >
-                {frontPhoto ? 'Next: Top Angle' : 'Skip / Continue with Default'}
+                {frontPhoto ? 'Next: Top Angle' : 'Continue to Top Angle'}
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: TOP PHOTO */}
+        {/* STEP 2: TOP PHOTO WITH CROWN GUIDE */}
         {currentStep === 2 && (
           <div className="my-4 space-y-4 text-center">
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">Angle 2 of 3</span>
               <h3 className="text-lg font-black text-white">Crown & Center Part</h3>
-              <p className="text-xs text-slate-400">Evaluates scalp visibility, sebum appearance, and crown density.</p>
+              <p className="text-xs text-slate-400">Hold camera above head to inspect scalp skin and crown whorl.</p>
             </div>
 
             <div 
               onClick={() => topInputRef.current?.click()}
-              className="w-56 h-56 mx-auto rounded-3xl border-2 border-dashed border-teal-500/50 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group"
+              className="w-60 h-60 mx-auto rounded-3xl border-2 border-dashed border-teal-500/60 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group shadow-xl"
             >
               {topPhoto ? (
-                <img src={topPhoto} alt="Top photo" className="w-full h-full object-cover" />
+                <>
+                  <img src={topPhoto} alt="Top photo" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="px-3 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-black text-xs">Tap to Retake</span>
+                  </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300">
-                  <Camera className="w-10 h-10 text-teal-400" />
-                  <span className="text-xs font-bold">Tap to snap or upload</span>
-                  <span className="text-[10px] text-slate-500">Hold phone above crown</span>
-                </div>
+                <>
+                  {/* Holographic Crown Target Guide */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none p-4 opacity-40" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="70" fill="none" stroke="#2dd4bf" strokeWidth="1.5" strokeDasharray="5 5" />
+                    <circle cx="100" cy="100" r="40" fill="none" stroke="#2dd4bf" strokeWidth="2" />
+                    <line x1="100" y1="10" x2="100" y2="190" stroke="#2dd4bf" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <line x1="10" y1="100" x2="190" y2="100" stroke="#2dd4bf" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <circle cx="100" cy="100" r="5" fill="#2dd4bf" />
+                  </svg>
+                  <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300 z-10">
+                    <Camera className="w-10 h-10 text-teal-400" />
+                    <span className="text-xs font-black text-white">Snap Top Crown</span>
+                    <span className="text-[10px] text-teal-400 font-semibold">Center crown whorl in reticle</span>
+                  </div>
+                </>
               )}
               <input 
                 ref={topInputRef}
@@ -263,33 +337,46 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                 onClick={() => setCurrentStep(3)}
                 className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-md shadow-teal-500/20 active:scale-98 transition-transform"
               >
-                {topPhoto ? 'Next: Side Texture' : 'Skip / Continue'}
+                {topPhoto ? 'Next: Side Angle' : 'Continue to Side Angle'}
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: SIDE PHOTO */}
+        {/* STEP 3: SIDE PHOTO WITH WAVE PROFILE GUIDE */}
         {currentStep === 3 && (
           <div className="my-4 space-y-4 text-center">
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">Angle 3 of 3</span>
-              <h3 className="text-lg font-black text-white">Side Profile / Strand Texture</h3>
-              <p className="text-xs text-slate-400">Measures curl pattern, frizz halo, and strand thickness.</p>
+              <h3 className="text-lg font-black text-white">Side Profile & Mid-Lengths</h3>
+              <p className="text-xs text-slate-400">Assesses curl pattern harmonics, cuticle frizz, and shaft caliber.</p>
             </div>
 
             <div 
               onClick={() => sideInputRef.current?.click()}
-              className="w-56 h-56 mx-auto rounded-3xl border-2 border-dashed border-teal-500/50 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group"
+              className="w-60 h-60 mx-auto rounded-3xl border-2 border-dashed border-teal-500/60 bg-slate-950 flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 transition-colors overflow-hidden relative group shadow-xl"
             >
               {sidePhoto ? (
-                <img src={sidePhoto} alt="Side photo" className="w-full h-full object-cover" />
+                <>
+                  <img src={sidePhoto} alt="Side photo" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="px-3 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-black text-xs">Tap to Retake</span>
+                  </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300">
-                  <Camera className="w-10 h-10 text-teal-400" />
-                  <span className="text-xs font-bold">Tap to snap or upload</span>
-                  <span className="text-[10px] text-slate-500">Angle phone from side/ear</span>
-                </div>
+                <>
+                  {/* Holographic Side Silhouette */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none p-4 opacity-40" viewBox="0 0 200 200">
+                    <path d="M 60 40 Q 140 40 150 110 Q 150 170 120 190" fill="none" stroke="#2dd4bf" strokeWidth="2" strokeDasharray="4 4" />
+                    <path d="M 80 80 Q 110 110 90 140 Q 70 170 100 190" fill="none" stroke="#2dd4bf" strokeWidth="1.5" />
+                    <circle cx="110" cy="80" r="4" fill="#2dd4bf" />
+                  </svg>
+                  <div className="flex flex-col items-center space-y-2 p-4 text-slate-400 group-hover:text-teal-300 z-10">
+                    <Camera className="w-10 h-10 text-teal-400" />
+                    <span className="text-xs font-black text-white">Snap Side Profile</span>
+                    <span className="text-[10px] text-teal-400 font-semibold">Frame side strand texture</span>
+                  </div>
+                </>
               )}
               <input 
                 ref={sideInputRef}
@@ -311,7 +398,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                 onClick={() => setCurrentStep(4)}
                 className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs shadow-md shadow-teal-500/20 active:scale-98 transition-transform"
               >
-                {sidePhoto ? 'Next: Quick Diagnostic' : 'Continue to Questions'}
+                {sidePhoto ? 'Next: Quick Diagnostic' : 'Continue to Diagnostic'}
               </button>
             </div>
           </div>
@@ -335,7 +422,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                     onClick={() => setSelectedHairType(type)}
                     className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
                       selectedHairType === type
-                        ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold'
+                        ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold shadow-sm'
                         : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
@@ -350,7 +437,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
               <label className="text-xs font-bold text-slate-300">2. Individual Strand Feel:</label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'Fine', label: 'Fine (Barely felt)' },
+                  { id: 'Fine', label: 'Fine (Silky/Barely felt)' },
                   { id: 'Medium', label: 'Medium' },
                   { id: 'Coarse', label: 'Coarse / Thick' }
                 ].map((item) => (
@@ -359,7 +446,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                     onClick={() => setSelectedTexture(item.id as any)}
                     className={`p-2 text-[10px] font-bold rounded-xl border text-center transition-all ${
                       selectedTexture === item.id
-                        ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold'
+                        ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold shadow-sm'
                         : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
@@ -384,7 +471,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
                     onClick={() => setSelectedScalp(item.id as any)}
                     className={`p-2.5 rounded-xl border text-left text-[11px] font-bold transition-all ${
                       selectedScalp === item.id
-                        ? 'bg-teal-500/20 text-teal-300 border-teal-500'
+                        ? 'bg-teal-500 text-slate-950 border-teal-500 font-extrabold shadow-sm'
                         : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
@@ -421,33 +508,83 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
 
             <button
               onClick={startAnalysis}
-              className="w-full py-3 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-98 transition-transform mt-2"
+              className="w-full py-3.5 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-98 transition-transform mt-2"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Generate My Hair Profile & Plan</span>
+              <Sparkles className="w-4 h-4 text-slate-950" />
+              <span className="text-slate-950">Run Holographic AI Analysis</span>
             </button>
           </div>
         )}
 
-        {/* STEP 5: ANIMATED SCANNING SEQUENCE */}
+        {/* STEP 5: HOLOGRAPHIC BIOMETRIC AI SCANNING HUD */}
         {currentStep === 5 && (
-          <div className="my-10 space-y-6 text-center animate-fadeIn">
-            <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-teal-500/20 border-t-teal-400 animate-spin" />
-              <div className="w-24 h-24 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-300 animate-pulse">
-                <ScanLine className="w-12 h-12" />
+          <div className="my-4 space-y-4 text-center animate-fadeIn">
+            {/* Holographic Scan Viewport */}
+            <div className="relative w-64 h-64 mx-auto rounded-3xl overflow-hidden bg-slate-950 border-2 border-teal-500/60 shadow-2xl flex items-center justify-center">
+              {/* Captured Photo Backdrop (or high tech grid) */}
+              {topPhoto || frontPhoto ? (
+                <img
+                  src={topPhoto || frontPhoto}
+                  alt="Scanning"
+                  className="w-full h-full object-cover filter brightness-75 contrast-125"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center">
+                  <div className="w-40 h-40 rounded-full border border-teal-500/30 flex items-center justify-center">
+                    <ScanLine className="w-16 h-16 text-teal-400/40" />
+                  </div>
+                </div>
+              )}
+
+              {/* Holographic Laser Sweep Bar */}
+              <div 
+                className="absolute left-0 right-0 h-1.5 bg-cyan-400 shadow-[0_0_16px_#22d3ee] pointer-events-none transition-all duration-75"
+                style={{
+                  top: `${(scanProgress * 1.5) % 100}%`,
+                  boxShadow: '0 0 20px #22d3ee, 0 0 40px #2dd4bf'
+                }}
+              />
+
+              {/* Pulsing Follicle Coordinate Crosshairs */}
+              <div className="absolute top-1/4 left-1/4 w-4 h-4 rounded-full border border-teal-400/80 animate-ping" />
+              <div className="absolute top-1/3 right-1/3 w-3 h-3 rounded-full border border-emerald-400/80 animate-ping" />
+              <div className="absolute bottom-1/4 left-1/2 w-4 h-4 rounded-full border border-cyan-400/80 animate-ping" />
+
+              {/* HUD Target Overlay Reticles */}
+              <div className="absolute inset-2 border border-teal-500/30 rounded-2xl pointer-events-none">
+                <div className="absolute top-2 left-2 text-[9px] font-mono text-teal-400 font-bold">
+                  REC • 4K TRICHO
+                </div>
+                <div className="absolute top-2 right-2 text-[9px] font-mono text-teal-300 font-bold">
+                  {scanProgress}%
+                </div>
+                <div className="absolute bottom-2 left-2 text-[8px] font-mono text-slate-400">
+                  LAT: 28.61° N
+                </div>
+                <div className="absolute bottom-2 right-2 text-[8px] font-mono text-emerald-400 font-bold">
+                  SEB_IDX: NORMAL
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-black text-white">Analyzing Hair Fiber & Follicles...</h3>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                Correlating angle captures, sebum lipid profile, and curl elasticity index.
-              </p>
-            </div>
+            {/* Diagnostic Telemetry Stream */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold">
+                <Cpu className="w-3.5 h-3.5 text-teal-400 animate-spin" />
+                <span>On-Device Neural Engine Active</span>
+              </div>
 
-            <div className="w-48 mx-auto bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div className="h-full bg-teal-400 animate-pulse w-3/4 rounded-full" />
+              <h4 className="text-sm font-black text-white px-2 h-10 flex items-center justify-center">
+                {TELEMETRY_PHASES[telemetryIndex]}
+              </h4>
+
+              {/* Progress bar */}
+              <div className="w-56 mx-auto bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                <div 
+                  className="h-full bg-teal-400 transition-all duration-100 rounded-full shadow-[0_0_10px_#2dd4bf]"
+                  style={{ width: `${scanProgress}%` }}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -456,7 +593,7 @@ export const HairScanFlowModal: React.FC<HairScanFlowModalProps> = ({
         {currentStep === 6 && scanResult && (
           <div className="my-3 space-y-4 animate-fadeIn text-left">
             {/* The Famous "YOUR HAIR PROFILE" Card from Prompt */}
-            <div className="p-4 rounded-3xl bg-gradient-to-br from-teal-950/50 via-slate-900 to-slate-900 border border-teal-500/50 shadow-2xl space-y-3 relative overflow-hidden">
+            <div className="p-4 rounded-3xl bg-slate-900 border border-teal-500/50 shadow-2xl space-y-3 relative overflow-hidden">
               <div className="flex items-center justify-between border-b border-teal-500/20 pb-2">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-teal-400">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PhotoRecord } from '../types';
 import { EXAMPLE_PHOTOS } from '../data/defaultData';
 import { 
@@ -12,9 +12,10 @@ import {
   AlertCircle,
   ShieldCheck,
   CheckCircle2,
-  ChevronRight,
-  Clock,
-  ArrowRight
+  Sliders,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 
 interface ProgressScreenProps {
@@ -34,12 +35,22 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoRecord | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  // Compare mode selections
-  const [compareId1, setCompareId1] = useState<string>(photos[0]?.id || '');
-  const [compareId2, setCompareId2] = useState<string>(photos[1]?.id || photos[0]?.id || '');
+  // Compare mode selections with smart fallback to reference photos
+  const comparisonList = photos.length >= 2 ? photos : [...photos, ...EXAMPLE_PHOTOS];
+  const [compareId1, setCompareId1] = useState<string>(photos[0]?.id || comparisonList[0]?.id || '');
+  const [compareId2, setCompareId2] = useState<string>(photos[1]?.id || comparisonList[1]?.id || comparisonList[0]?.id || '');
+  const [compareViewType, setCompareViewType] = useState<'slider' | 'sideBySide'>('slider');
 
-  const photo1 = photos.find((p) => p.id === compareId1) || photos[0];
-  const photo2 = photos.find((p) => p.id === compareId2) || photos[1] || photos[0];
+  // Slider State
+  const [sliderPosition, setSliderPosition] = useState<number>(50);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isAutoWiping, setIsAutoWiping] = useState<boolean>(false);
+  const sliderContainerRef = useRef<HTMLDivElement>(null);
+  const autoWipeRef = useRef<number | null>(null);
+  const autoWipeDirection = useRef<number>(1);
+
+  const photo1 = comparisonList.find((p) => p.id === compareId1) || comparisonList[0];
+  const photo2 = comparisonList.find((p) => p.id === compareId2) || comparisonList[1] || comparisonList[0];
 
   // 30-Day 5-Milestone Definitions (Day 1 -> 7 -> 14 -> 21 -> 30)
   const MILESTONES = [
@@ -50,8 +61,61 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
     { day: 30, label: 'Day 30: Completion', desc: 'Full 30-day visual regimen comparison' },
   ];
 
+  // Auto-wipe animation loop
+  useEffect(() => {
+    if (!isAutoWiping) {
+      if (autoWipeRef.current) cancelAnimationFrame(autoWipeRef.current);
+      return;
+    }
+
+    let currentPos = sliderPosition;
+    const step = () => {
+      currentPos += autoWipeDirection.current * 0.45;
+      if (currentPos >= 85) {
+        currentPos = 85;
+        autoWipeDirection.current = -1;
+      } else if (currentPos <= 15) {
+        currentPos = 15;
+        autoWipeDirection.current = 1;
+      }
+      setSliderPosition(Math.round(currentPos * 10) / 10);
+      autoWipeRef.current = requestAnimationFrame(step);
+    };
+
+    autoWipeRef.current = requestAnimationFrame(step);
+    return () => {
+      if (autoWipeRef.current) cancelAnimationFrame(autoWipeRef.current);
+    };
+  }, [isAutoWiping]);
+
+  // Pointer drag handling for slider
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsAutoWiping(false);
+    setIsDragging(true);
+    updateSliderFromClientX(e.clientX);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    updateSliderFromClientX(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+
+  const updateSliderFromClientX = (clientX: number) => {
+    if (!sliderContainerRef.current) return;
+    const rect = sliderContainerRef.current.getBoundingClientRect();
+    const raw = ((clientX - rect.left) / rect.width) * 100;
+    const bounded = Math.max(0, Math.min(100, Math.round(raw)));
+    setSliderPosition(bounded);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-28">
+    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 app-screen-container max-w-md mx-auto space-y-5 pb-32">
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
@@ -82,7 +146,7 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
           onClick={() => setActiveTab('timeline')}
           className={`flex-1 py-2 rounded-xl font-bold transition-colors ${
             activeTab === 'timeline'
-              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30'
+              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30 font-black'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -92,27 +156,27 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
           onClick={() => setActiveTab('compare')}
           className={`flex-1 py-2 rounded-xl font-bold transition-colors ${
             activeTab === 'compare'
-              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30'
+              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30 font-black'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Side-by-Side
+          Wipe Comparison
         </button>
         <button
           onClick={() => setActiveTab('journal')}
           className={`flex-1 py-2 rounded-xl font-bold transition-colors ${
             activeTab === 'journal'
-              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30'
+              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30 font-black'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          All ({photos.length})
+          Journal ({photos.length})
         </button>
         <button
           onClick={() => setActiveTab('examples')}
           className={`flex-1 py-2 rounded-xl font-bold transition-colors ${
             activeTab === 'examples'
-              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30'
+              ? 'bg-teal-500/15 text-teal-300 shadow-sm border border-teal-500/30 font-black'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -120,52 +184,63 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
         </button>
       </div>
 
-      {/* COMPLIANCE & SAFETY NOTICE */}
-      <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-        <div className="flex items-center gap-1.5 text-teal-400 font-bold">
-          <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-          <span>Visual Tracking & Habit Adherence</span>
+      {/* MANDATORY PLAY STORE DISCLAIMER BANNER */}
+      <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5 shadow-sm">
+        <ShieldCheck className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <span className="font-bold text-white text-[11px] block">
+            Visual Habit Tracking Record
+          </span>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            This timeline records self-care habit compliance. Hair growth rates vary naturally based on genetics, nutrition, and follicular cycle.
+          </p>
         </div>
-        <p className="text-slate-400 leading-relaxed pl-5">
-          Photographic logs record hair styling consistency and habit discipline. Apparent density fluctuates with wash timing, lighting angle, and parting alignment. This is visual condition tracking, not medical proof of hair regrowth.
-        </p>
       </div>
 
-      {/* TAB 1: 30-DAY TIMELINE */}
+      {/* TAB 1: 30-DAY 5-MILESTONE TIMELINE */}
       {activeTab === 'timeline' && (
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-            <span>Milestone Check-ins</span>
-            <span className="text-teal-400">{Math.min(photos.length, 5)} of 5 Milestones Recorded</span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+              5 Key Evaluation Milestones
+            </span>
+            <span className="text-[11px] font-bold text-teal-400">
+              {photos.length} photos logged
+            </span>
           </div>
 
-          <div className="relative border-l-2 border-slate-800 ml-4 pl-4 space-y-4">
+          <div className="space-y-2.5">
             {MILESTONES.map((m, idx) => {
-              // Find matching photo if exists
               const matchedPhoto = photos[idx];
               const isRecorded = !!matchedPhoto;
 
               return (
-                <div key={m.day} className="relative group">
-                  {/* Timeline dot */}
-                  <div className={`absolute -left-[23px] top-1.5 w-3.5 h-3.5 rounded-full border-2 transition-colors ${
-                    isRecorded 
-                      ? 'bg-teal-400 border-slate-950 shadow-[0_0_8px_#2dd4bf]' 
-                      : 'bg-slate-900 border-slate-700'
-                  }`} />
-
-                  <div className={`rounded-2xl p-4 border transition-all ${
+                <div
+                  key={m.day}
+                  className={`p-3.5 rounded-2xl border transition-all ${
                     isRecorded
-                      ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
-                      : 'bg-slate-900/40 border-slate-800/60'
-                  }`}>
-                    <div className="flex items-start justify-between gap-3">
+                      ? 'bg-slate-900 border-teal-500/40 shadow-sm'
+                      : 'bg-slate-900/50 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 mt-0.5 ${
+                        isRecorded
+                          ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+                          : 'bg-slate-800 text-slate-500'
+                      }`}>
+                        {isRecorded ? <CheckCircle2 className="w-4 h-4 text-teal-400" /> : m.day}
+                      </div>
+
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-white">{m.label}</span>
+                          <h4 className="text-xs font-black text-white">
+                            {m.label}
+                          </h4>
                           {isRecorded ? (
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30">
-                              Logged
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300">
+                              Logged ✓
                             </span>
                           ) : (
                             <span className="text-[10px] font-semibold text-slate-500">
@@ -177,134 +252,277 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
                           {m.desc}
                         </p>
                       </div>
-
-                      {isRecorded && (
-                        <button
-                          onClick={() => setSelectedPhoto(matchedPhoto)}
-                          className="w-14 h-14 rounded-xl overflow-hidden border border-slate-700 flex-shrink-0 active:scale-95 transition-transform"
-                        >
-                          <img
-                            src={matchedPhoto.imageUrl}
-                            alt={matchedPhoto.zoneLabel}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      )}
-
-                      {!isRecorded && (
-                        <button
-                          onClick={onOpenCapture}
-                          className="px-3 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all flex-shrink-0"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>Snap</span>
-                        </button>
-                      )}
                     </div>
+
+                    {isRecorded && (
+                      <button
+                        onClick={() => setSelectedPhoto(matchedPhoto)}
+                        className="w-14 h-14 rounded-xl overflow-hidden border border-slate-700 flex-shrink-0 active:scale-95 transition-transform"
+                      >
+                        <img
+                          src={matchedPhoto.imageUrl}
+                          alt={matchedPhoto.zoneLabel}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    )}
+
+                    {!isRecorded && (
+                      <button
+                        onClick={onOpenCapture}
+                        className="px-3 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all flex-shrink-0"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Snap</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {photos.length >= 2 && (
-            <button
-              onClick={() => setActiveTab('compare')}
-              className="w-full py-3 rounded-2xl bg-slate-900 border border-teal-500/40 hover:border-teal-500 text-teal-300 text-xs font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"
-            >
-              <Columns2 className="w-4 h-4" />
-              <span>Open Side-by-Side Milestone Comparison</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('compare')}
+            className="w-full py-3 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-teal-500/20"
+          >
+            <Sliders className="w-4 h-4 text-slate-950" />
+            <span className="text-slate-950">Open Interactive Before/After Split Slider</span>
+          </button>
         </div>
       )}
 
-      {/* TAB 2: SIDE-BY-SIDE COMPARE */}
+      {/* TAB 2: INTERACTIVE DRAG-TO-REVEAL BEFORE/AFTER SLIDER */}
       {activeTab === 'compare' && (
-        <div className="space-y-4">
-          {photos.length < 2 ? (
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 text-center space-y-2">
-              <Columns2 className="w-8 h-8 text-slate-600 mx-auto" />
-              <p className="text-xs text-slate-400">
-                You need at least 2 photos logged to compare them side-by-side.
-              </p>
+        <div className="space-y-4 animate-fadeIn">
+          {photos.length < 2 && (
+            <div className="p-3 rounded-2xl bg-teal-950/40 border border-teal-500/40 flex items-center justify-between text-xs text-teal-300">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+                <span>Reference Milestone Comparison Mode</span>
+              </div>
               <button
                 onClick={onOpenCapture}
-                className="text-xs font-bold text-teal-400 hover:underline"
+                className="text-[10px] font-bold text-teal-300 hover:text-white underline"
               >
-                Snap another photo now
+                + Snap Personal Photo
               </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Selectors */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 block mb-1">Baseline Photo</label>
-                  <select
-                    value={compareId1}
-                    onChange={(e) => setCompareId1(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-400"
-                  >
-                    {photos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.date} - {p.zoneLabel}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 block mb-1">Comparison Photo</label>
-                  <select
-                    value={compareId2}
-                    onChange={(e) => setCompareId2(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-400"
-                  >
-                    {photos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.date} - {p.zoneLabel}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          )}
+
+          <div className="space-y-3.5">
+            {/* Selectors */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                  Baseline Photo (Left)
+                </label>
+                <select
+                  value={compareId1}
+                  onChange={(e) => setCompareId1(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-400 font-semibold"
+                >
+                  {comparisonList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.date} - {p.zoneLabel}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                  Progress Photo (Right)
+                </label>
+                <select
+                  value={compareId2}
+                  onChange={(e) => setCompareId2(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-400 font-semibold"
+                >
+                  {comparisonList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.date} - {p.zoneLabel}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+              {/* View Mode Toggle: Wipe Slider vs Side-by-Side */}
+              <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-1 text-xs">
+                <button
+                  onClick={() => setCompareViewType('slider')}
+                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                    compareViewType === 'slider'
+                      ? 'bg-teal-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>🎚️ Drag Wipe Slider</span>
+                </button>
+                <button
+                  onClick={() => setCompareViewType('sideBySide')}
+                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                    compareViewType === 'sideBySide'
+                      ? 'bg-teal-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Columns2 className="w-3.5 h-3.5" />
+                  <span>↔️ Side-by-Side Dual</span>
+                </button>
               </div>
 
-              {/* Side-by-side view */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="aspect-square bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative">
-                    <img
-                      src={photo1.imageUrl}
-                      alt={photo1.zoneLabel}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/80 text-teal-300">
-                      Baseline
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 text-center font-medium">
-                    {photo1.date} • {photo1.zoneLabel}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="aspect-square bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative">
+              {/* VIEW 1: INTERACTIVE DRAG-TO-REVEAL SLIDER */}
+              {compareViewType === 'slider' && (
+                <div className="space-y-3">
+                  <div
+                    ref={sliderContainerRef}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    style={{ aspectRatio: '1 / 1', minHeight: '340px' }}
+                    className="relative w-full rounded-3xl overflow-hidden bg-slate-950 border-2 border-teal-500/50 shadow-2xl touch-none select-none cursor-ew-resize"
+                  >
+                    {/* Underlying Layer: Photo 2 (Milestone / Right) */}
                     <img
                       src={photo2.imageUrl}
                       alt={photo2.zoneLabel}
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                     />
-                    <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/80 text-teal-300">
-                      Comparison
-                    </span>
+
+                    {/* Top Clipped Layer: Photo 1 (Baseline / Left) */}
+                    <div
+                      className="absolute inset-0 overflow-hidden pointer-events-none"
+                      style={{
+                        clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`
+                      }}
+                    >
+                      <img
+                        src={photo1.imageUrl}
+                        alt={photo1.zoneLabel}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Floating Badges */}
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-teal-500/40 text-[10px] font-black text-teal-300">
+                      DAY 1 BASELINE
+                    </div>
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-teal-500/40 text-[10px] font-black text-teal-300">
+                      PROGRESS MILESTONE
+                    </div>
+
+                    {/* Vertical Dividing Line */}
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5 bg-teal-400 shadow-[0_0_12px_#2dd4bf] pointer-events-none"
+                      style={{ left: `${sliderPosition}%` }}
+                    />
+
+                    {/* Draggable Metallic Circular Knob */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-teal-500 border-2 border-white shadow-2xl flex items-center justify-center text-slate-950 font-black text-xs cursor-ew-resize active:scale-110 transition-transform pointer-events-auto"
+                      style={{ left: `${sliderPosition}%` }}
+                    >
+                      <span className="text-[11px] tracking-tighter">◀ ▶</span>
+                    </div>
+
+                    {/* Bottom Split Percentage Indicator */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-700 text-[10px] font-bold text-slate-300 pointer-events-none">
+                      Wipe: {sliderPosition}%
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-400 text-center font-medium">
-                    {photo2.date} • {photo2.zoneLabel}
+
+                  {/* Slider Controls Bar */}
+                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-2.5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setIsAutoWiping(false); setSliderPosition(25); }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${sliderPosition === 25 ? 'bg-teal-500 text-slate-950' : 'bg-slate-950 text-slate-400'}`}
+                      >
+                        25%
+                      </button>
+                      <button
+                        onClick={() => { setIsAutoWiping(false); setSliderPosition(50); }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${sliderPosition === 50 ? 'bg-teal-500 text-slate-950' : 'bg-slate-950 text-slate-400'}`}
+                      >
+                        50% Split
+                      </button>
+                      <button
+                        onClick={() => { setIsAutoWiping(false); setSliderPosition(75); }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${sliderPosition === 75 ? 'bg-teal-500 text-slate-950' : 'bg-slate-950 text-slate-400'}`}
+                      >
+                        75%
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => setIsAutoWiping(!isAutoWiping)}
+                      className={`px-3 py-1 rounded-xl font-black text-[11px] flex items-center gap-1.5 transition-all ${
+                        isAutoWiping
+                          ? 'bg-amber-500 text-slate-950 shadow-md'
+                          : 'bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30'
+                      }`}
+                    >
+                      {isAutoWiping ? (
+                        <>
+                          <Pause className="w-3 h-3" />
+                          <span>Pause Wipe</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3 h-3" />
+                          <span>Auto-Wipe</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* VIEW 2: DUAL SIDE-BY-SIDE CARDS */}
+              {compareViewType === 'sideBySide' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div 
+                      style={{ aspectRatio: '1 / 1', minHeight: '160px' }}
+                      className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative"
+                    >
+                      <img
+                        src={photo1.imageUrl}
+                        alt={photo1.zoneLabel}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/80 text-teal-300">
+                        Baseline
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 text-center font-medium">
+                      {photo1.date} • {photo1.zoneLabel}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div 
+                      style={{ aspectRatio: '1 / 1', minHeight: '160px' }}
+                      className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative"
+                    >
+                      <img
+                        src={photo2.imageUrl}
+                        alt={photo2.zoneLabel}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/80 text-teal-300">
+                        Milestone
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 text-center font-medium">
+                      {photo2.date} • {photo2.zoneLabel}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
         </div>
       )}
 
