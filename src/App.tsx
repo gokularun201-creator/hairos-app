@@ -33,6 +33,8 @@ import { ScalpCheckModal } from './components/ScalpCheckModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { FoodWaterSettingsModal } from './components/FoodWaterSettingsModal';
 import { ExportFeedbackModal } from './components/ExportFeedbackModal';
+import { ShowerCompanionModal } from './components/ShowerCompanionModal';
+import { ScalpMassageTimerModal } from './components/ScalpMassageTimerModal';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'home' | 'routine' | 'lab' | 'journal' | 'guide'>('home');
@@ -49,6 +51,8 @@ export const App: React.FC = () => {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [isScalpCheckOpen, setIsScalpCheckOpen] = useState(false);
+  const [isShowerCompanionOpen, setIsShowerCompanionOpen] = useState(false);
+  const [isScalpMassageOpen, setIsScalpMassageOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFoodWaterModalOpen, setIsFoodWaterModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -363,6 +367,8 @@ export const App: React.FC = () => {
           onToggleTask={handleToggleTask}
           onOpenRoutineTab={() => setCurrentTab('routine')}
           onOpenLabTab={() => setCurrentTab('lab')}
+          onOpenShowerCompanion={() => setIsShowerCompanionOpen(true)}
+          onOpenScalpMassage={() => setIsScalpMassageOpen(true)}
           onOpenJournalTab={() => setCurrentTab('journal')}
           onOpenCapture={() => setIsCaptureOpen(true)}
           onOpenScalpCheck={() => setIsScalpCheckOpen(true)}
@@ -453,6 +459,25 @@ export const App: React.FC = () => {
         fileName={exportedFileName}
         dataPackage={exportedDataPackage}
         fileSizeBytes={exportedFileSize}
+      />
+
+      <ShowerCompanionModal
+        isOpen={isShowerCompanionOpen}
+        onClose={() => setIsShowerCompanionOpen(false)}
+        onCompleteWash={async () => {
+          const updated = { ...dailyChecklistState, morningWashDone: true };
+          setDailyChecklistState(updated);
+          await storage.saveDailyChecklistState(updated);
+          showToast('Wash day completed and logged!');
+        }}
+      />
+
+      <ScalpMassageTimerModal
+        isOpen={isScalpMassageOpen}
+        onClose={() => setIsScalpMassageOpen(false)}
+        onComplete={async () => {
+          showToast('4-minute scalp micro-circulation session completed!');
+        }}
       />
     </div>
   );

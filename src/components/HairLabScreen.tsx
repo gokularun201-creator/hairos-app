@@ -29,6 +29,7 @@ import {
   AnalysisResult 
 } from '../services/ingredientAnalyzer';
 import { HairCalculators, HardWaterResult, DilutionCalculation } from '../services/hairCalculators';
+import { HAIR_OIL_DATABASE, getRecommendedOilCombination } from '../services/oilMatrixData';
 import { UserProfile, ShelfProduct, ScalpCheck } from '../types';
 
 interface HairLabScreenProps {
@@ -44,7 +45,7 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({
   onSaveShelfProducts,
   scalpChecks = [] 
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'decoder' | 'shelf' | 'water' | 'diy' | 'shedding'>('decoder');
+  const [activeSubTab, setActiveSubTab] = useState<'decoder' | 'shelf' | 'oils' | 'water' | 'diy' | 'shedding' | 'myths'>('decoder');
 
   // Ingredient Analyzer State
   const [ingredientText, setIngredientText] = useState(PRESET_PRODUCTS[1].ingredients);
@@ -209,9 +210,11 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({
         {[
           { id: 'decoder', label: 'Decoder' },
           { id: 'shelf', label: 'My Shelf' },
+          { id: 'oils', label: 'Oil Matrix' },
           { id: 'water', label: 'Water & Weather' },
           { id: 'diy', label: 'DIY Formulator' },
-          { id: 'shedding', label: 'Shedding & Scalp' }
+          { id: 'shedding', label: 'Shedding & Scalp' },
+          { id: 'myths', label: 'Myth Buster' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -606,7 +609,108 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* SUBTAB 3: WATER & WEATHER SHIELD                                          */}
+      {/* SUBTAB: OIL CHEMISTRY MATRIX (PENETRATING VS SEALING)                    */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'oils' && (
+        <div className="space-y-5 animate-fadeIn">
+          {/* Science Overview Banner */}
+          <div className="p-4 rounded-3xl bg-slate-900 border border-teal-500/30 space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-teal-400" />
+              <h3 className="text-sm font-extrabold text-slate-100">
+                Lipid Chemistry: Penetrating vs Sealing Oils
+              </h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Not all oils do the same job! Only oils rich in <strong>Lauric Acid</strong> with tiny linear triglycerides can enter the hair cortex. Larger branched oils stay on the surface as cuticle sealants.
+            </p>
+          </div>
+
+          {/* User's Personalized Recommendation Card */}
+          {(() => {
+            const oilRec = getRecommendedOilCombination(profile.scalpType, porosityAnswer || 'medium');
+            return (
+              <div className="p-4 rounded-3xl bg-gradient-to-br from-teal-950/40 via-slate-900 to-slate-900 border border-teal-500/40 space-y-2.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-400 block">
+                  Your Custom Oil Regimen (Scalp: {profile.scalpType})
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2">
+                    <span className="text-teal-400 font-bold shrink-0">Pre-Wash:</span>
+                    <span className="text-slate-200">{oilRec.preWash}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2">
+                    <span className="text-teal-400 font-bold shrink-0">Scalp Carrier:</span>
+                    <span className="text-slate-200">{oilRec.carrierForScalp}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2">
+                    <span className="text-teal-400 font-bold shrink-0">Ends Sealant:</span>
+                    <span className="text-slate-200">{oilRec.postWashSealant}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-200 flex items-start gap-2">
+                    <span className="text-rose-400 font-bold shrink-0">Avoid:</span>
+                    <span>{oilRec.avoid}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* All Oils Database Grid */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+              Trichology Oil Encyclopedia ({HAIR_OIL_DATABASE.length}):
+            </h4>
+
+            {HAIR_OIL_DATABASE.map((oil) => (
+              <div
+                key={oil.id}
+                className="p-4 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all space-y-2.5"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9px] font-bold text-teal-400 uppercase tracking-wider">
+                      {oil.botanicalName}
+                    </span>
+                    <h5 className="text-sm font-extrabold text-slate-100">{oil.name}</h5>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                    oil.type === 'penetrating'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : oil.type === 'active_essential'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      : 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+                  }`}>
+                    {oil.typeLabel}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2 rounded-xl bg-slate-950 border border-slate-800/80">
+                    <span className="text-slate-400 block text-[9px] uppercase font-bold">Key Fatty Acid:</span>
+                    <span className="text-slate-200 font-semibold">{oil.primaryFattyAcid}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-950 border border-slate-800/80">
+                    <span className="text-slate-400 block text-[9px] uppercase font-bold">Molecular Action:</span>
+                    <span className="text-slate-200 font-semibold">{oil.molecularWeight}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                  <p>👉 <strong className="text-slate-200">How to Apply:</strong> {oil.howToUse}</p>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-[11px] text-teal-200/90 leading-relaxed">
+                  <p>🔬 <strong className="text-teal-300">Clinical Data:</strong> {oil.clinicalFact}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUBTAB 4: WATER & WEATHER SHIELD                                          */}
       {/* ========================================================================= */}
       {activeSubTab === 'water' && (
         <div className="space-y-5 animate-fadeIn">
@@ -1020,6 +1124,91 @@ export const HairLabScreen: React.FC<HairLabScreenProps> = ({
             <FileText className="w-4 h-4" />
             <span>Generate Doctor / Clinic Summary</span>
           </button>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUBTAB: EVIDENCE-BASED CLINICAL MYTH BUSTER                              */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'myths' && (
+        <div className="space-y-4 animate-fadeIn">
+          <div className="p-4 rounded-3xl bg-slate-900 border border-teal-500/30 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-teal-400" />
+              <h3 className="text-sm font-extrabold text-slate-100">
+                Trichology Myth Buster & Clinical Reality
+              </h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Don't waste money on marketing gimmicks. Here is what peer-reviewed dermatology literature actually proves.
+            </p>
+          </div>
+
+          {[
+            {
+              myth: "Biotin Gummies Stop Hair Loss & Accelerate Growth",
+              verdict: "FALSE & CLINICALLY RISKY",
+              statusColor: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+              science: "Intestinal microflora already synthesize 100% of human biotin requirements. True deficiency is exceedingly rare (<0.01%). High-dose biotin gummies cause severe cystic jawline acne and dangerously skew cardiac troponin blood tests during heart emergencies.",
+              truth: "Check serum Ferritin (iron storage) and Vitamin D3 instead; these are the actual silent drivers of telogen effluvium."
+            },
+            {
+              myth: "Trimming Hair Makes It Grow Faster from the Scalp",
+              verdict: "PHYSIOLOGICALLY IMPOSSIBLE",
+              statusColor: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+              science: "Hair fiber is dead keratinized protein. Follicles deep inside the scalp have zero bio-feedback with cut hair ends 12 inches away. Trimming stops existing split ends from traveling upward, preserving hair length, but does not speed up follicle division.",
+              truth: "Trim every 3 to 4 months solely to eliminate frayed tips and mechanical breakage."
+            },
+            {
+              myth: "Washing Hair Every Day Causes Permanent Hair Loss",
+              verdict: "FALSE (Harmful for Oily Scalps)",
+              statusColor: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+              science: "The hairs you shed in the shower detached 2 to 5 days earlier in the telogen phase. Washing merely flushes them out. For oily or seborrheic scalps, skipping washes lets sebum and Malassezia yeast accumulate, triggering follicular inflammation.",
+              truth: "Wash as frequently as sebum dictates. Oily scalps benefit from daily or alternate-day gentle cleansing."
+            },
+            {
+              myth: "Commercial Bottled Onion Shampoos Reverse Baldness",
+              verdict: "MARKETING DECEPTION",
+              statusColor: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+              science: "The 2002 Sharquie trial used fresh, unpasteurized crude allium cepa juice applied twice daily. Catalase enzymes and sulfur compounds oxidize and break down within 48 hours. Bottled shampoos contain less than 0.1% stabilized extract diluted in standard detergents.",
+              truth: "Use clinically verified topicals (diluted rosemary oil or minoxidil) instead of cosmetic onion gimmicks."
+            },
+            {
+              myth: "Natural Essential Oils Are Always Safe Because They're Organic",
+              verdict: "DANGEROUS MISCONCEPTION",
+              statusColor: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+              science: "Pure essential oils (Rosemary, Peppermint, Cinnamon, Tea Tree) are aggressive volatile chemical concentrates. Applying them undiluted causes chemical burns, severe contact dermatitis, and immediate shock shedding.",
+              truth: "Never exceed 1%–2% dilution in a gentle carrier oil (Jojoba or Sweet Almond)."
+            },
+            {
+              myth: "Ice Cold Water Rinses Cure Follicular Thinning",
+              verdict: "MYTH",
+              statusColor: "border-teal-500/30 bg-teal-500/10 text-teal-300",
+              science: "Follicle dermal papillae are anchored 3 to 4 mm beneath the scalp surface. Cold surface water cannot revive miniaturized follicles. However, cool water does flat-iron outer cuticle scales for cosmetic shine.",
+              truth: "Wash with comfortable lukewarm water and finish with a cool rinse for shine."
+            }
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="p-4 rounded-3xl bg-slate-900 border border-slate-800 space-y-2.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="text-xs font-black text-slate-100">
+                  ❌ "{item.myth}"
+                </h4>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border shrink-0 ${item.statusColor}`}>
+                  {item.verdict}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-[11px] text-slate-300 leading-relaxed space-y-1.5">
+                <p>🧬 <strong className="text-slate-100">Dermatology Science:</strong> {item.science}</p>
+                <p className="pt-1.5 border-t border-slate-900 text-teal-300 font-semibold">
+                  💡 <strong>Actionable Truth:</strong> {item.truth}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
