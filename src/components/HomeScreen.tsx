@@ -14,7 +14,9 @@ import {
   ShowerHead,
   SlidersHorizontal,
   Info,
-  Check
+  Check,
+  FlaskConical,
+  Sparkles
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -31,6 +33,7 @@ interface HomeScreenProps {
   onToggleTask: (taskId: string) => void;
   onOpenRoutineTab: () => void;
   onOpenJournalTab: () => void;
+  onOpenLabTab?: () => void;
   onOpenCapture: () => void;
   onOpenScalpCheck: () => void;
   onOpenSettings: () => void;
@@ -51,6 +54,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onToggleTask,
   onOpenRoutineTab,
   onOpenJournalTab,
+  onOpenLabTab,
   onOpenCapture,
   onOpenScalpCheck,
   onOpenSettings,
@@ -516,6 +520,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* EXISTING FEATURES PRESERVED: PROGRESS PHOTO & CARE HABITS                 */}
       {/* ========================================================================= */}
       <div className="space-y-4 pt-2 border-t border-slate-850">
+        {/* NEW: PRO HAIR LAB & INGREDIENT DECODER CARD */}
+        {onOpenLabTab && (
+          <div 
+            onClick={onOpenLabTab}
+            role="button"
+            tabIndex={0}
+            className="bg-gradient-to-br from-teal-950/50 via-slate-900 to-slate-900 border border-teal-500/30 hover:border-teal-500/50 rounded-3xl p-5 shadow-xl flex items-center justify-between cursor-pointer active:scale-98 transition-all group"
+          >
+            <div className="space-y-1.5 pr-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-black uppercase tracking-wider border border-teal-500/30 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-teal-300" />
+                  Pro Clinic Feature
+                </span>
+                <span className="text-[10px] text-slate-400 font-bold">100% Offline</span>
+              </div>
+              <h3 className="text-base font-black text-white flex items-center gap-1.5 group-hover:text-teal-300 transition-colors">
+                Hair Lab & Ingredient Decoder <FlaskConical className="w-4 h-4 text-teal-400" />
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Scan shampoos for harsh sulfates & silicones, calculate hard water ACV rinse, and rosemary oil dilution.
+              </p>
+            </div>
+
+            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-teal-500 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform">
+              <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+            </div>
+          </div>
+        )}
+
         {/* ACTION: ADD PROGRESS PHOTO */}
         <div className="bg-gradient-to-br from-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center justify-between">
           <div className="space-y-1 pr-3">

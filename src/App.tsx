@@ -24,6 +24,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { RoutineScreen } from './components/RoutineScreen';
 import { ProgressScreen } from './components/ProgressScreen';
 import { EducationalGuideScreen } from './components/EducationalGuideScreen';
+import { HairLabScreen } from './components/HairLabScreen';
 import { OnboardingModal } from './components/OnboardingModal';
 import { PhotoCaptureModal } from './components/PhotoCaptureModal';
 import { ScalpCheckModal } from './components/ScalpCheckModal';
@@ -32,7 +33,7 @@ import { FoodWaterSettingsModal } from './components/FoodWaterSettingsModal';
 import { ExportFeedbackModal } from './components/ExportFeedbackModal';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'home' | 'routine' | 'journal' | 'guide'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'routine' | 'lab' | 'journal' | 'guide'>('home');
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [routines, setRoutines] = useState<RoutineTask[]>(DEFAULT_ROUTINES);
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
@@ -347,6 +348,7 @@ export const App: React.FC = () => {
           onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
           onToggleTask={handleToggleTask}
           onOpenRoutineTab={() => setCurrentTab('routine')}
+          onOpenLabTab={() => setCurrentTab('lab')}
           onOpenJournalTab={() => setCurrentTab('journal')}
           onOpenCapture={() => setIsCaptureOpen(true)}
           onOpenScalpCheck={() => setIsScalpCheckOpen(true)}
@@ -366,6 +368,10 @@ export const App: React.FC = () => {
           onOpenReminders={() => setIsSettingsOpen(true)}
           onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
         />
+      )}
+
+      {currentTab === 'lab' && (
+        <HairLabScreen profile={profile} />
       )}
 
       {currentTab === 'journal' && (
