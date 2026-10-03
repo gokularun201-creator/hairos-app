@@ -28,6 +28,7 @@ interface ProfileSettingsModalProps {
   onImportData: (jsonStr: string) => void;
   onClearAllData: () => void;
   onOpenFoodWaterSettings?: () => void;
+  onOpenSmartReminders?: () => void;
 }
 
 export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
@@ -40,7 +41,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onExportData,
   onImportData,
   onClearAllData,
-  onOpenFoodWaterSettings
+  onOpenFoodWaterSettings,
+  onOpenSmartReminders
 }) => {
   const [name, setName] = useState(profile.name || '');
   const [scalpType, setScalpType] = useState<ScalpType>(profile.scalpType || 'normal');
@@ -331,6 +333,19 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 />
               </div>
             </div>
+          )}
+
+          {onOpenSmartReminders && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenSmartReminders();
+              }}
+              className="w-full mt-2 py-2 px-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-bold hover:bg-teal-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Open Smart Reminder Hub (All Channels & Alarms)</span>
+            </button>
           )}
         </div>
 

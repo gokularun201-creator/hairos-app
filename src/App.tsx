@@ -39,6 +39,8 @@ import { FoodWaterSettingsModal } from './components/FoodWaterSettingsModal';
 import { ExportFeedbackModal } from './components/ExportFeedbackModal';
 import { ShowerCompanionModal } from './components/ShowerCompanionModal';
 import { ScalpMassageTimerModal } from './components/ScalpMassageTimerModal';
+import { SmartReminderModal } from './components/SmartReminderModal';
+import { NotificationHud } from './components/NotificationHud';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'plan' | 'scan' | 'checker' | 'progress' | 'lab'>('plan');
@@ -64,6 +66,7 @@ export const App: React.FC = () => {
   const [isScalpMassageOpen, setIsScalpMassageOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFoodWaterModalOpen, setIsFoodWaterModalOpen] = useState(false);
+  const [isSmartReminderOpen, setIsSmartReminderOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -304,7 +307,9 @@ export const App: React.FC = () => {
         newConfig.morningReminderTime,
         newConfig.nightReminderTime,
         newConfig.afternoonReminderTime,
-        newConfig.washDays
+        newConfig.washReminderTime,
+        newConfig.washDays,
+        newConfig.washEnabled
       );
     }
     showToast('Daily checklist settings saved!');
@@ -365,10 +370,17 @@ export const App: React.FC = () => {
     }
   };
 
-  // Save Reminders
+  // Save Reminders & Sync Alarms
   const handleSaveReminders = async (newReminders: ReminderSettings) => {
     setReminders(newReminders);
     await storage.saveReminders(newReminders);
+    await NativeService.scheduleAllSmartReminders(newReminders, {
+      hairType: profile.hairType,
+      scalpType: profile.scalpType,
+      planDayNumber: thirtyDayPlan.find(d => d.habits.some(h => !h.completed))?.dayNumber || 1,
+      planDayTitle: thirtyDayPlan[0]?.title
+    });
+    showToast(newReminders.enabled ? 'Smart Reminders & Alarms synchronized! 🔔' : 'Reminders paused.');
   };
 
   // Export Data with explicit feedback dialog
@@ -460,6 +472,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-teal-500 selection:text-slate-950 font-sans antialiased">
+      {/* Dynamic In-App Notification HUD Banner */}
+      <NotificationHud />
+
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-teal-500 text-slate-950 font-bold text-xs shadow-2xl shadow-teal-500/30 transition-all animate-bounce">
@@ -476,6 +491,7 @@ export const App: React.FC = () => {
           onOpenScanModal={() => setIsScanModalOpen(true)}
           onOpenPhotoCapture={() => setIsCaptureOpen(true)}
           onOpenProductChecker={() => setCurrentTab('checker')}
+          onOpenReminders={() => setIsSmartReminderOpen(true)}
         />
       )}
 
@@ -486,6 +502,7 @@ export const App: React.FC = () => {
           onNavigateToPlan={() => setCurrentTab('plan')}
           onNavigateToChecker={() => setCurrentTab('checker')}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenReminders={() => setIsSmartReminderOpen(true)}
         />
       )}
 
@@ -556,6 +573,7 @@ export const App: React.FC = () => {
           onImportData={handleImportData}
           onClearAllData={handleClearAllData}
           onOpenFoodWaterSettings={() => setIsFoodWaterModalOpen(true)}
+          onOpenSmartReminders={() => setIsSmartReminderOpen(true)}
         />
       )}
 
@@ -591,6 +609,15 @@ export const App: React.FC = () => {
         onComplete={async () => {
           showToast('4-minute scalp micro-circulation session completed!');
         }}
+      />
+
+      <SmartReminderModal
+        isOpen={isSmartReminderOpen}
+        onClose={() => setIsSmartReminderOpen(false)}
+        reminders={reminders}
+        profile={profile}
+        currentPlanDay={thirtyDayPlan.find(d => d.habits.some(h => !h.completed)) || thirtyDayPlan[0]}
+        onSaveReminders={handleSaveReminders}
       />
     </div>
   );

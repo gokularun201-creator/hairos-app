@@ -18,7 +18,8 @@ import {
   FlaskConical,
   Sparkles,
   Activity,
-  Play
+  Play,
+  Bell
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -28,6 +29,8 @@ interface HomeScreenProps {
   scalpChecks: ScalpCheck[];
   foodWaterConfig: DailyFoodWaterConfig;
   dailyChecklistState: DailyChecklistState;
+  remindersEnabled?: boolean;
+  onOpenReminders?: () => void;
   onToggleChecklistItem: (key: keyof DailyChecklistState) => void;
   onSkipSection: (section: 'morning' | 'afternoon' | 'night') => void;
   onDismissMonthlyPhoto: () => void;
@@ -51,6 +54,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   scalpChecks,
   foodWaterConfig,
   dailyChecklistState,
+  remindersEnabled,
+  onOpenReminders,
   onToggleChecklistItem,
   onSkipSection,
   onDismissMonthlyPhoto,
@@ -127,13 +132,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={onOpenSettings}
-            aria-label="Settings and Privacy Center"
-            className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors active:scale-95"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onOpenReminders}
+              aria-label="Smart Reminders & Alarms"
+              className="relative w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors active:scale-95"
+            >
+              <Bell className="w-5 h-5 text-teal-400/90" />
+              {remindersEnabled && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-400 shadow-sm shadow-teal-400 animate-pulse" />
+              )}
+            </button>
+
+            <button
+              onClick={onOpenSettings}
+              aria-label="Settings and Privacy Center"
+              className="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors active:scale-95"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Welcoming Greeting Card */}

@@ -16,7 +16,8 @@ import {
   Settings,
   Share2,
   Download,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 
 interface HairProfileScreenProps {
@@ -25,6 +26,7 @@ interface HairProfileScreenProps {
   onNavigateToPlan: () => void;
   onNavigateToChecker: () => void;
   onOpenSettings?: () => void;
+  onOpenReminders?: () => void;
 }
 
 export const HairProfileScreen: React.FC<HairProfileScreenProps> = ({
@@ -32,7 +34,8 @@ export const HairProfileScreen: React.FC<HairProfileScreenProps> = ({
   onOpenScanModal,
   onNavigateToPlan,
   onNavigateToChecker,
-  onOpenSettings
+  onOpenSettings,
+  onOpenReminders
 }) => {
   const [showStoryModal, setShowStoryModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -212,14 +215,26 @@ export const HairProfileScreen: React.FC<HairProfileScreenProps> = ({
           </h1>
         </div>
 
-        {onOpenSettings && (
-          <button
-            onClick={onOpenSettings}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onOpenReminders && (
+            <button
+              onClick={onOpenReminders}
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-teal-400 hover:text-white transition-colors"
+              aria-label="Smart Reminders"
+            >
+              <Bell className="w-4 h-4" />
+            </button>
+          )}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors"
+              aria-label="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* NO SCAN STATE */}

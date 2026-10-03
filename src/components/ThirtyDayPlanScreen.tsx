@@ -20,7 +20,8 @@ import {
   Layers,
   ArrowRight,
   PartyPopper,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 
 interface ThirtyDayPlanScreenProps {
@@ -30,6 +31,7 @@ interface ThirtyDayPlanScreenProps {
   onOpenScanModal: () => void;
   onOpenPhotoCapture: () => void;
   onOpenProductChecker?: () => void;
+  onOpenReminders?: () => void;
 }
 
 interface ConfettiParticle {
@@ -50,7 +52,8 @@ export const ThirtyDayPlanScreen: React.FC<ThirtyDayPlanScreenProps> = ({
   onToggleHabit,
   onOpenScanModal,
   onOpenPhotoCapture,
-  onOpenProductChecker
+  onOpenProductChecker,
+  onOpenReminders
 }) => {
   const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
   const [selectedWeekFilter, setSelectedWeekFilter] = useState<number | 'all'>('all');
@@ -209,15 +212,27 @@ export const ThirtyDayPlanScreen: React.FC<ThirtyDayPlanScreenProps> = ({
           </h1>
         </div>
 
-        {scanResult && (
-          <button
-            onClick={onOpenScanModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/30 text-teal-300 text-xs font-bold active:scale-95 transition-transform"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Profile</span>
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onOpenReminders && (
+            <button
+              onClick={onOpenReminders}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-teal-300 text-xs font-bold active:scale-95 transition-transform"
+            >
+              <Bell className="w-3.5 h-3.5 text-teal-400" />
+              <span>Reminders</span>
+            </button>
+          )}
+
+          {scanResult && (
+            <button
+              onClick={onOpenScanModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/30 text-teal-300 text-xs font-bold active:scale-95 transition-transform"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Profile</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* STREAK COUNTER BADGE */}

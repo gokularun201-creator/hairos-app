@@ -104,7 +104,26 @@ export class NativeService {
     });
   }
 
-  // --- LOCAL NOTIFICATIONS & REMINDERS ---
+  // --- LOCAL NOTIFICATIONS & SMART REMINDER ENGINE ---
+
+  public static async checkNotificationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+    const cap = (window as any).Capacitor;
+    if (cap?.Plugins?.LocalNotifications) {
+      try {
+        const status = await cap.Plugins.LocalNotifications.checkPermissions();
+        if (status.display === 'granted') return 'granted';
+        if (status.display === 'denied') return 'denied';
+        return 'prompt';
+      } catch (e) {
+        return 'prompt';
+      }
+    }
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission as any;
+    }
+    return 'prompt';
+  }
+
   public static async requestNotificationPermission(): Promise<boolean> {
     const cap = (window as any).Capacitor;
     if (cap?.Plugins?.LocalNotifications) {
@@ -128,115 +147,354 @@ export class NativeService {
     return false;
   }
 
-  public static async scheduleReminders(
-    enabled: boolean,
-    morningTime: string = '08:00',
-    eveningTime: string = '20:30',
-    afternoonTime: string = '13:00',
-    washReminderTime: string = '08:00',
-    washDays: number[] = [1, 4],
-    washEnabled: boolean = true
-  ): Promise<boolean> {
+  public static triggerHapticFeedback(pattern: number[] = [80, 40, 80]) {
+    try {
+      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+        navigator.vibrate(pattern);
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Fires an instant live notification test to verify device sound, vibration, and banner
+   */
+  public static async sendInstantTestNotification(ctx: any = {}): Promise<boolean> {
+    const { NotificationContentGenerator } = await import('./notificationContentGenerator');
+    const note = NotificationContentGenerator.generate('test', ctx);
+
+    // 1. Trigger haptic feedback
+    this.triggerHapticFeedback([100, 50, 150]);
+
+    // 2. Dispatch custom in-app HUD event for instant visual feedback
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('hair_os_notification_event', {
+          detail: {
+            title: note.title,
+            body: note.body,
+            category: note.category,
+            timestamp: Date.now()
+          }
+        })
+      );
+    }
+
+    // 3. Fire native Android notification via Capacitor
     const cap = (window as any).Capacitor;
     if (cap?.Plugins?.LocalNotifications) {
       try {
-        // Cancel previous reminders first (IDs 101 to 110)
-        const idsToCancel = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110].map(id => ({ id }));
-        await cap.Plugins.LocalNotifications.cancel({ notifications: idsToCancel });
-
-        if (!enabled) {
-          return true;
-        }
-
-        // Create notification channel on Android
-        try {
-          await cap.Plugins.LocalNotifications.createChannel({
-            id: 'hair_os_care_reminders',
-            name: 'Care Routine Reminders',
-            description: 'Daily gentle reminders for hair care, hydration, and nutrition',
-            importance: 4,
-            visibility: 1,
-            vibration: true
-          });
-        } catch (channelErr) {}
-
-        const notifications: any[] = [];
-
-        // 1. Morning Reminder
-        const [mH, mM] = morningTime.split(':').map(Number);
-        const morningDate = new Date();
-        morningDate.setHours(mH || 8, mM || 0, 0, 0);
-        if (morningDate.getTime() <= Date.now()) {
-          morningDate.setDate(morningDate.getDate() + 1);
-        }
-        notifications.push({
-          id: 101,
-          title: 'Morning Care & Nutrition ☀️',
-          body: 'Time for your morning water and breakfast habits. Check your daily card!',
-          channelId: 'hair_os_care_reminders',
-          schedule: { at: morningDate, every: 'day' }
-        });
-
-        // 2. Afternoon Reminder
-        const [aH, aM] = afternoonTime.split(':').map(Number);
-        const afternoonDate = new Date();
-        afternoonDate.setHours(aH || 13, aM || 0, 0, 0);
-        if (afternoonDate.getTime() <= Date.now()) {
-          afternoonDate.setDate(afternoonDate.getDate() + 1);
-        }
-        notifications.push({
-          id: 102,
-          title: 'Afternoon Hydration & Lunch 🌤️',
-          body: 'Remember your afternoon water glasses and nourishing lunch.',
-          channelId: 'hair_os_care_reminders',
-          schedule: { at: afternoonDate, every: 'day' }
-        });
-
-        // 3. Night Reminder
-        const [eH, eM] = eveningTime.split(':').map(Number);
-        const eveningDate = new Date();
-        eveningDate.setHours(eH || 20, eM || 30, 0, 0);
-        if (eveningDate.getTime() <= Date.now()) {
-          eveningDate.setDate(eveningDate.getDate() + 1);
-        }
-        notifications.push({
-          id: 103,
-          title: 'Night Routine & Wind-Down 🌙',
-          body: 'Evening water, selected food option, and gentle scalp relaxation.',
-          channelId: 'hair_os_care_reminders',
-          schedule: { at: eveningDate, every: 'day' }
-        });
-
-        // 4. Scheduled Hair Wash Reminders (ONLY on configured wash days, e.g. Mon & Thu)
-        if (washEnabled && washDays.length > 0) {
-          const [wH, wM] = washReminderTime.split(':').map(Number);
-          washDays.forEach((dayOfWeek, idx) => {
-            const washDate = new Date();
-            const currentDay = washDate.getDay();
-            let distance = (dayOfWeek - currentDay + 7) % 7;
-            washDate.setDate(washDate.getDate() + distance);
-            washDate.setHours(wH || 8, wM || 0, 0, 0);
-            if (washDate.getTime() <= Date.now()) {
-              washDate.setDate(washDate.getDate() + 7);
+        await cap.Plugins.LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 999,
+              title: note.title,
+              body: note.body,
+              channelId: 'hair_os_routine',
+              schedule: { at: new Date(Date.now() + 800) },
+              sound: 'res://raw/notification_sound'
             }
-            notifications.push({
-              id: 104 + idx,
-              title: 'Scheduled Hair Wash Day 🚿',
-              body: 'Today is your scheduled hair wash morning! Cleanse gently with lukewarm water.',
-              channelId: 'hair_os_care_reminders',
-              schedule: { at: washDate, every: 'week' }
-            });
-          });
-        }
-
-        await cap.Plugins.LocalNotifications.schedule({ notifications });
+          ]
+        });
         return true;
-      } catch (e) {
-        console.warn('[NativeService] Error scheduling local notifications:', e);
-        return false;
+      } catch (err) {
+        console.warn('[NativeService] Capacitor test notification fallback:', err);
       }
+    }
+
+    // 4. Fallback to Web Notification API
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(note.title, {
+          body: note.body,
+          icon: '/favicon.ico'
+        });
+      } catch (e) {}
     }
 
     return true;
   }
+
+  /**
+   * Schedules all intelligent hair care notification channels
+   */
+  public static async scheduleAllSmartReminders(
+    settings: any,
+    ctx: any = {}
+  ): Promise<boolean> {
+    const cap = (window as any).Capacitor;
+    const { NotificationContentGenerator } = await import('./notificationContentGenerator');
+
+    if (!cap?.Plugins?.LocalNotifications) {
+      console.log('[NativeService] Running in web environment. Smart reminders saved locally.');
+      return true;
+    }
+
+    try {
+      // 1. Cancel all previous scheduled Hair OS reminders (IDs 100 to 199)
+      const idsToCancel = Array.from({ length: 100 }, (_, i) => ({ id: 100 + i }));
+      await cap.Plugins.LocalNotifications.cancel({ notifications: idsToCancel });
+
+      if (!settings.enabled) {
+        return true;
+      }
+
+      // 2. Ensure Android Notification Channels exist with proper priorities
+      try {
+        await cap.Plugins.LocalNotifications.createChannel({
+          id: 'hair_os_routine',
+          name: 'Daily Hair & Scalp Routine',
+          description: 'Daily morning, hydration, and nighttime follicle care prompts',
+          importance: 4,
+          visibility: 1,
+          vibration: settings.vibration !== false
+        });
+
+        await cap.Plugins.LocalNotifications.createChannel({
+          id: 'hair_os_wash_day',
+          name: 'Wash Day & Pre-Poo Prep',
+          description: 'Scheduled hair wash mornings and pre-wash protective alerts',
+          importance: 4,
+          visibility: 1,
+          vibration: settings.vibration !== false
+        });
+
+        await cap.Plugins.LocalNotifications.createChannel({
+          id: 'hair_os_milestone',
+          name: 'Weekly Photo Milestones',
+          description: '7-day progress photo comparison check-ins',
+          importance: 3,
+          visibility: 1,
+          vibration: settings.vibration !== false
+        });
+
+        await cap.Plugins.LocalNotifications.createChannel({
+          id: 'hair_os_safety',
+          name: 'Product Patch Test Safety',
+          description: '24-hour ingredient safety timer',
+          importance: 5,
+          visibility: 1,
+          vibration: true
+        });
+      } catch (chErr) {}
+
+      const notifications: any[] = [];
+      const userCtx = { ...ctx, persona: settings.persona || 'clinical' };
+
+      // Helper to compute next occurrence of HH:MM
+      const getNextTimeDate = (timeStr: string = '08:00', addDays: number = 0): Date => {
+        const [h, m] = (timeStr || '08:00').split(':').map(Number);
+        const d = new Date();
+        d.setDate(d.getDate() + addDays);
+        d.setHours(h || 8, m || 0, 0, 0);
+        if (addDays === 0 && d.getTime() <= Date.now()) {
+          d.setDate(d.getDate() + 1);
+        }
+        return d;
+      };
+
+      // 1. Morning Routine Channel
+      if (settings.morningEnabled !== false) {
+        const morningNote = NotificationContentGenerator.generate('morning', userCtx);
+        notifications.push({
+          id: 101,
+          title: morningNote.title,
+          body: morningNote.body,
+          channelId: 'hair_os_routine',
+          schedule: { at: getNextTimeDate(settings.morningTime || '08:00'), every: 'day' }
+        });
+      }
+
+      // 2. Midday Hydration & Keratin Channel
+      if (settings.afternoonEnabled !== false) {
+        const middayNote = NotificationContentGenerator.generate('midday', userCtx);
+        notifications.push({
+          id: 102,
+          title: middayNote.title,
+          body: middayNote.body,
+          channelId: 'hair_os_routine',
+          schedule: { at: getNextTimeDate(settings.afternoonTime || '13:00'), every: 'day' }
+        });
+      }
+
+      // 3. Night Silk Bonnet & Scalp Release Channel
+      if (settings.nightEnabled !== false) {
+        const nightNote = NotificationContentGenerator.generate('night', userCtx);
+        notifications.push({
+          id: 103,
+          title: nightNote.title,
+          body: nightNote.body,
+          channelId: 'hair_os_routine',
+          schedule: { at: getNextTimeDate(settings.nightTime || '21:00'), every: 'day' }
+        });
+      }
+
+      // 4. Wash Day Morning & Pre-Poo Eve Alarms
+      const washDays: number[] = Array.isArray(settings.washDays) ? settings.washDays : [1, 4];
+      if (settings.washDayEnabled !== false && washDays.length > 0) {
+        const washTime = typeof settings.washTime === 'string' ? settings.washTime : '07:30';
+        const [wH, wM] = washTime.split(':').map(Number);
+
+        washDays.forEach((dayOfWeek, idx) => {
+          // Morning wash alarm
+          const washDate = new Date();
+          const currentDay = washDate.getDay();
+          let distance = (dayOfWeek - currentDay + 7) % 7;
+          washDate.setDate(washDate.getDate() + distance);
+          washDate.setHours(wH || 7, wM || 30, 0, 0);
+          if (washDate.getTime() <= Date.now()) {
+            washDate.setDate(washDate.getDate() + 7);
+          }
+
+          const washNote = NotificationContentGenerator.generate('wash_day', userCtx);
+          notifications.push({
+            id: 110 + idx,
+            title: washNote.title,
+            body: washNote.body,
+            channelId: 'hair_os_wash_day',
+            schedule: { at: washDate, every: 'week' }
+          });
+
+          // Pre-Wash Eve Pre-Poo Alert (Night before wash day at 20:30)
+          if (settings.preWashEveEnabled !== false) {
+            const preWashDate = new Date(washDate);
+            preWashDate.setDate(preWashDate.getDate() - 1);
+            preWashDate.setHours(20, 30, 0, 0);
+            if (preWashDate.getTime() > Date.now()) {
+              const preWashNote = NotificationContentGenerator.generate('pre_wash_eve', userCtx);
+              notifications.push({
+                id: 120 + idx,
+                title: preWashNote.title,
+                body: preWashNote.body,
+                channelId: 'hair_os_wash_day',
+                schedule: { at: preWashDate, every: 'week' }
+              });
+            }
+          }
+        });
+      }
+
+      // 5. Weekly Photo Milestone Alert (Every Sunday at 10:00 AM)
+      if (settings.milestonePhotoEnabled !== false) {
+        const photoDate = new Date();
+        const curDay = photoDate.getDay();
+        const dist = (0 - curDay + 7) % 7; // Sunday = 0
+        photoDate.setDate(photoDate.getDate() + dist);
+        photoDate.setHours(10, 0, 0, 0);
+        if (photoDate.getTime() <= Date.now()) {
+          photoDate.setDate(photoDate.getDate() + 7);
+        }
+
+        const milestoneNote = NotificationContentGenerator.generate('milestone', {
+          ...userCtx,
+          planDayNumber: 7
+        });
+        notifications.push({
+          id: 130,
+          title: milestoneNote.title,
+          body: milestoneNote.body,
+          channelId: 'hair_os_milestone',
+          schedule: { at: photoDate, every: 'week' }
+        });
+      }
+
+      // 6. Active Patch Test Reminder
+      if (settings.patchTestAlertAt && settings.patchTestAlertAt > Date.now()) {
+        const patchNote = NotificationContentGenerator.generate('patch_test', {
+          productName: settings.patchTestProductName || 'New Formula'
+        });
+        notifications.push({
+          id: 140,
+          title: patchNote.title,
+          body: patchNote.body,
+          channelId: 'hair_os_safety',
+          schedule: { at: new Date(settings.patchTestAlertAt) }
+        });
+      }
+
+      if (notifications.length > 0) {
+        await cap.Plugins.LocalNotifications.schedule({ notifications });
+        console.log(`[NativeService] Successfully scheduled ${notifications.length} smart hair care alarms.`);
+      }
+
+      return true;
+    } catch (e) {
+      console.warn('[NativeService] Error scheduling smart reminders:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Schedules a 24-hour product patch test safety reminder
+   */
+  public static async schedulePatchTestReminder(productName: string, hours = 24): Promise<number> {
+    const triggerTime = Date.now() + hours * 3600 * 1000;
+    const { NotificationContentGenerator } = await import('./notificationContentGenerator');
+    const note = NotificationContentGenerator.generate('patch_test', { productName });
+
+    const cap = (window as any).Capacitor;
+    if (cap?.Plugins?.LocalNotifications) {
+      try {
+        await cap.Plugins.LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 140,
+              title: note.title,
+              body: note.body,
+              channelId: 'hair_os_safety',
+              schedule: { at: new Date(triggerTime) }
+            }
+          ]
+        });
+      } catch (err) {
+        console.warn('[NativeService] Error setting patch test alarm:', err);
+      }
+    }
+
+    return triggerTime;
+  }
+
+  // --- BACKWARDS COMPATIBILITY WRAPPER ---
+  public static async scheduleReminders(
+    enabled: boolean,
+    morningTime: any = '08:00',
+    eveningTime: any = '20:30',
+    afternoonTime: any = '13:00',
+    washReminderTime: any = '08:00',
+    washDays: any = [1, 4],
+    washEnabled: boolean = true
+  ): Promise<boolean> {
+    // Gracefully handle argument swapping if washDays was passed as 5th argument
+    let resolvedWashDays = [1, 4];
+    let resolvedWashTime = '08:00';
+
+    if (Array.isArray(washReminderTime)) {
+      resolvedWashDays = washReminderTime;
+    } else if (typeof washReminderTime === 'string') {
+      resolvedWashTime = washReminderTime;
+    }
+
+    if (Array.isArray(washDays)) {
+      resolvedWashDays = washDays;
+    }
+
+    const settings = {
+      enabled,
+      morningEnabled: true,
+      morningTime: typeof morningTime === 'string' ? morningTime : '08:00',
+      afternoonEnabled: true,
+      afternoonTime: typeof afternoonTime === 'string' ? afternoonTime : '13:00',
+      nightEnabled: true,
+      nightTime: typeof eveningTime === 'string' ? eveningTime : '20:30',
+      washDayEnabled: washEnabled,
+      washDays: resolvedWashDays,
+      washTime: resolvedWashTime,
+      preWashEveEnabled: true,
+      milestonePhotoEnabled: true,
+      persona: 'clinical' as const,
+      vibration: true
+    };
+
+    return this.scheduleAllSmartReminders(settings, {});
+  }
 }
+

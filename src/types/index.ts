@@ -61,11 +61,30 @@ export interface DiaryEntry {
   tags: string[];
 }
 
+export type NotificationPersona = 'clinical' | 'gentle' | 'coach';
+
 export interface ReminderSettings {
   enabled: boolean;
   morningTime: string;
   eveningTime: string;
   showerDayReminder: boolean;
+  // Upgraded Smart Notification suite
+  persona?: NotificationPersona;
+  vibration?: boolean;
+  sound?: boolean;
+  morningEnabled?: boolean;
+  afternoonEnabled?: boolean;
+  afternoonTime?: string;
+  nightEnabled?: boolean;
+  nightTime?: string;
+  washDayEnabled?: boolean;
+  washDays?: number[];
+  washTime?: string;
+  preWashEveEnabled?: boolean;
+  preWashEveTime?: string;
+  milestonePhotoEnabled?: boolean;
+  patchTestAlertAt?: number | null;
+  patchTestProductName?: string | null;
 }
 
 // Daily Food & Water and Scheduled Hair Wash Configuration
