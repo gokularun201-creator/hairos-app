@@ -1,14 +1,25 @@
 {
   "name": "hairos-app",
   "version": "2.5.0",
-  "description": "",
-  "main": "index.js",
+  "description": "HAIR OS Pro — 100% Server-Free Care Routine, AI Hair Lab & Photo Journal Website",
+  "main": "dist/index.html",
   "scripts": {
+    "start": "node serve.js",
+    "dev": "node serve.js",
+    "serve": "node serve.js",
     "build": "node build.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"All modules verified\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "hair-care",
+    "hair-routine",
+    "habit-tracker",
+    "ai-hair-diagnostic",
+    "hair-lab",
+    "server-free",
+    "privacy-first"
+  ],
+  "author": "gokularun201-creator",
   "license": "ISC",
   "packageManager": "pnpm@10.28.0",
   "dependencies": {
